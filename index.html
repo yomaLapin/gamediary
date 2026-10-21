@@ -10,7 +10,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#242424">
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22GameCheck%22%2C%22short_name%22%3A%22GameCheck%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%23242424%22%2C%22theme_color%22%3A%22%23242424%22%7D">
+  
+  <!-- [수정됨] PWA 설치 필수 조건인 아이콘(Icon) 데이터가 포함된 완전한 manifest로 교체 -->
+  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22GameCheck%22%2C%22short_name%22%3A%22GameCheck%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%23242424%22%2C%22theme_color%22%3A%22%23242424%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27192%27%20height%3D%27192%27%253E%253Crect%20width%3D%27192%27%20height%3D%27192%27%20fill%3D%27%2523bb86fc%27%2F%253E%253Ctext%20x%3D%2750%2525%27%20y%3D%2750%2525%27%20dominant-baseline%3D%27middle%27%20text-anchor%3D%27middle%27%20font-size%3D%2780%27%253E%25F0%259F%258E%25AE%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%2C%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27512%27%20height%3D%27512%27%253E%253Crect%20width%3D%27512%27%20height%3D%27512%27%20fill%3D%27%2523bb86fc%27%2F%253E%253Ctext%20x%3D%2750%2525%27%20y%3D%2750%2525%27%20dominant-baseline%3D%27middle%27%20text-anchor%3D%27middle%27%20font-size%3D%27200%27%253E%25F0%259F%258E%25AE%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
 
   <style>
     :root {
@@ -1010,9 +1012,11 @@
   <div class="fixed-bottom-wrapper">
     <div class="bottom-info">
       <span>-제작: YomaLapin</span>
-      <span>-Ver: 202610-014</span>
+      <span>-Ver: 202610-015</span>
     </div>
     <div class="bottom-actions">
+      <!-- [수정됨] PWA 설치 버튼 추가 (기본 숨김 처리) -->
+      <button class="btn-bottom" id="btnInstall" style="display:none; background-color: var(--accent-color); color: #1a1a1a;">[설치]</button>
       <button class="btn-bottom btn-tag-save" onclick="exportData()">[SAVE]</button>
       <button class="btn-bottom btn-tag-load" onclick="confirmAndTriggerLoad()">[LOAD]</button>
       <button class="btn-bottom" onclick="toggleFullScreen()">[전체화면]</button>
@@ -2922,6 +2926,40 @@
        }
        container.innerHTML = html;
     }
+
+    // ==========================================
+    // PWA 앱 설치 (Install) 로직 추가 
+    // ==========================================
+    let deferredPrompt;
+    const btnInstall = document.getElementById('btnInstall');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // 크롬의 기본 미니 정보바가 자동 표시되는 것을 방지합니다.
+      e.preventDefault();
+      // 이벤트를 나중에 사용하기 위해 저장합니다.
+      deferredPrompt = e;
+      // 설치 조건이 충족되었으므로 하단의 [설치] 버튼을 보여줍니다.
+      btnInstall.style.display = 'inline-block';
+    });
+
+    btnInstall.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        // 사용자에게 설치 프롬프트를 띄웁니다.
+        deferredPrompt.prompt();
+        // 사용자가 설치를 수락했는지 거절했는지 결과를 기다립니다.
+        const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User response to the install prompt: ${outcome}`);
+        // 한 번 띄운 프롬프트는 재사용할 수 없으므로 비우고 버튼을 숨깁니다.
+        deferredPrompt = null;
+        btnInstall.style.display = 'none';
+      }
+    });
+
+    window.addEventListener('appinstalled', () => {
+      // 설치가 완료되면 버튼을 완전히 숨깁니다.
+      btnInstall.style.display = 'none';
+      console.log('PWA가 기기에 성공적으로 설치되었습니다.');
+    });
 
   </script>
 </body>
