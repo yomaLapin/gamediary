@@ -46,6 +46,7 @@
       padding-bottom: 110px;
       min-height: calc(var(--vh, 1vh) * 100);
       -webkit-overflow-scrolling: touch;
+      transition: padding-bottom 0.3s;
     }
 
     /* 시작 선택 및 공통 모달 창 */
@@ -602,6 +603,7 @@
       padding: 0 15px;
       z-index: 1500;
       box-shadow: 0 -2px 10px rgba(0,0,0,0.5);
+      display: none; /* 기본 상태: 숨김 */
     }
 
     .sw-display {
@@ -646,7 +648,6 @@
       justify-content: space-between;
     }
 
-    /* [수정됨] 카운터 정보 레이아웃 가로 배치로 변경 */
     .counter-info {
       display: flex;
       flex-direction: row;
@@ -765,6 +766,38 @@
 
     .btn-tag-save { background-color: #a82828 !important; color: #ffffff !important; border-color: #e57373 !important; }
     .btn-tag-load { background-color: #1565c0 !important; color: #ffffff !important; border-color: #64b5f6 !important; }
+
+    /* 열람 모드 하단 퀵 카운터 패널 스타일 */
+    .view-quick-counter-wrapper {
+      position: fixed;
+      background-color: var(--card-bg);
+      border-top: 1px solid var(--border-color);
+      z-index: 1000;
+      padding: 10px 15px;
+      box-shadow: 0 -4px 10px rgba(0,0,0,0.5);
+      display: none; /* 열람 모드에서만 활성화 */
+      left: 0;
+      right: 0;
+    }
+    
+    .view-quick-counter-scroll {
+      max-height: 145px; /* 약 3개 항목이 보이는 높이 */
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .quick-counter-item {
+      background-color: #222222;
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 8px 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
@@ -784,7 +817,7 @@
     </div>
   </div>
 
-  <!-- [추가됨] Counter 전용 수정 모달 -->
+  <!-- Counter 전용 수정 모달 -->
   <div class="modal-overlay" id="counterEditModal" style="display:none;">
     <div class="modal-card">
       <div class="modal-title">Counter 수정</div>
@@ -907,12 +940,17 @@
     </div>
     
     <div class="sticky-header" id="stickyViewBar" style="display:none; padding: 8px 10px;">
-      <div class="game-select-bar" style="margin-bottom: 0; padding: 8px;">
+      <div class="game-select-bar" style="margin-bottom: 8px; padding: 8px;">
         <label class="field-label" style="margin:0;">📖 GAME:</label>
         <select id="gameSelectView" onchange="renderViewMode()">
           <option value="">-- 선택하세요 --</option>
         </select>
         <button class="btn-small" style="background: #4a4a4a; color: #fff; font-weight: bold; font-size: 14px; padding: 6px 12px; height: 34px;" onclick="collapseAllAndViewTop()" title="모두 접고 맨 위로">△</button>
+      </div>
+      <!-- [추가됨] 열람 모드 전용 카운터/타이머 토글 버튼 영역 -->
+      <div style="display:flex; gap: 8px;">
+        <button class="btn-small" id="btnToggleViewCounter" style="flex:1; background: #3b3b3b; color: #03dac6; padding: 8px; font-weight:bold; border: 1px solid #03dac6;" onclick="toggleViewCounter()">📊 카운터 열기</button>
+        <button class="btn-small" id="btnToggleViewTimer" style="flex:1; background: #3b3b3b; color: #bb86fc; padding: 8px; font-weight:bold; border: 1px solid #bb86fc;" onclick="toggleViewTimer()">⏱️ 타이머 열기</button>
       </div>
     </div>
   </div>
@@ -1038,6 +1076,15 @@
 
   </div>
 
+  <!-- 열람 모드 전용 하단 퀵 카운터 패널 -->
+  <div id="viewQuickCounterPanel" class="view-quick-counter-wrapper">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+      <span style="font-size:13px; font-weight:bold; color:var(--accent-color);">⚡ 퀵 카운터</span>
+      <span style="font-size:11px; color:var(--text-sub);">위아래로 스크롤하여 더 보기</span>
+    </div>
+    <div id="viewQuickCounterScroll" class="view-quick-counter-scroll"></div>
+  </div>
+
   <div class="global-stopwatch-bar" id="globalStopwatchBar">
     <div class="sw-display" id="swDisplay">00:00:00.00</div>
     <div class="sw-controls">
@@ -1050,7 +1097,7 @@
   <div class="fixed-bottom-wrapper">
     <div class="bottom-info">
       <span>-제작: yomaLapin</span>
-      <span>-Ver: 202610-017</span>
+      <span>-Ver: 202610-020</span>
     </div>
     <div class="bottom-actions">
       <button class="btn-bottom" id="btnInstall" style="display:none; background-color: var(--accent-color); color: #1a1a1a;">[설치]</button>
@@ -1061,6 +1108,13 @@
   </div>
 
   <script>
+    // ==========================================
+    // 앱 전역 상태 변수
+    // ==========================================
+    let currentAppMode = 'record';
+    let isViewCounterOpen = false;
+    let isViewTimerOpen = false;
+
     // ==========================================
     // 커스텀 모달 스크립트 (팝업 닫힘 충돌 해결)
     // ==========================================
@@ -1556,7 +1610,90 @@
       }
     }
 
+    // ==========================================
+    // 레이아웃 & 패딩 동적 계산 함수 추가
+    // ==========================================
+    function updateDynamicLayout() {
+       let bottomNavHeight = 45;
+       let paddingSpace = 25;
+       let swHeight = 55;
+       let pb = bottomNavHeight + paddingSpace; 
+       
+       const swBar = document.getElementById('globalStopwatchBar');
+       const qcPanel = document.getElementById('viewQuickCounterPanel');
+       
+       let isSwVisible = false;
+
+       // 1. 스톱워치 바 표시 유무 (모드 및 토글 상태에 따라 결정)
+       if (currentAppMode === 'record') {
+         swBar.style.display = 'none';
+       } else if (currentAppMode === 'counter') {
+         swBar.style.display = 'flex';
+         isSwVisible = true;
+       } else if (currentAppMode === 'view') {
+         if (isViewTimerOpen) {
+           swBar.style.display = 'flex';
+           isSwVisible = true;
+         } else {
+           swBar.style.display = 'none';
+         }
+       }
+
+       if (isSwVisible) pb += swHeight;
+       
+       // 2. 열람 모드 퀵 카운터 패널 표시 유무
+       if (currentAppMode === 'view' && isViewCounterOpen) {
+         const selectedGame = document.getElementById('gameSelectView').value;
+         let stat = getGameStats(selectedGame);
+         if (stat && stat.counters && stat.counters.length > 0) {
+           qcPanel.style.display = 'block';
+           // 스톱워치가 켜져있으면 스톱워치 위에, 아니면 하단 내비게이션 바 바로 위에 띄움
+           qcPanel.style.bottom = isSwVisible ? (bottomNavHeight + swHeight) + 'px' : bottomNavHeight + 'px';
+           pb += 165; // 패널 높이만큼 여백 추가
+         } else {
+           qcPanel.style.display = 'none';
+         }
+       } else {
+         qcPanel.style.display = 'none';
+       }
+
+       // 3. 최종 바디 하단 여백 반영
+       document.body.style.paddingBottom = pb + 'px';
+    }
+
+    function toggleViewCounter() {
+      isViewCounterOpen = !isViewCounterOpen;
+      const btn = document.getElementById('btnToggleViewCounter');
+      if (isViewCounterOpen) {
+        btn.innerText = "📊 카운터 닫기";
+        btn.style.background = "#03dac6";
+        btn.style.color = "#1a1a1a";
+      } else {
+        btn.innerText = "📊 카운터 열기";
+        btn.style.background = "#3b3b3b";
+        btn.style.color = "#03dac6";
+      }
+      renderViewQuickCounters(document.getElementById('gameSelectView').value);
+    }
+
+    function toggleViewTimer() {
+      isViewTimerOpen = !isViewTimerOpen;
+      const btn = document.getElementById('btnToggleViewTimer');
+      if (isViewTimerOpen) {
+        btn.innerText = "⏱️ 타이머 닫기";
+        btn.style.background = "#bb86fc";
+        btn.style.color = "#1a1a1a";
+      } else {
+        btn.innerText = "⏱️ 타이머 열기";
+        btn.style.background = "#3b3b3b";
+        btn.style.color = "#bb86fc";
+      }
+      updateDynamicLayout();
+    }
+
     function switchMode(mode) {
+      currentAppMode = mode;
+      
       const btnRecord = document.getElementById('btnRecordMode');
       const btnView = document.getElementById('btnViewMode');
       const btnCounter = document.getElementById('btnCounterMode');
@@ -1595,6 +1732,8 @@
         renderCounters();
         renderLaps();
       }
+      
+      updateDynamicLayout();
       setTimeout(adjustHeaderPadding, 10);
     }
 
@@ -1762,9 +1901,51 @@
       renderViewMode();
     }
 
+    // [열람 모드 전용 퀵 카운터 패널 렌더링]
+    function renderViewQuickCounters(gameTitle) {
+      const scrollArea = document.getElementById('viewQuickCounterScroll');
+      
+      if (!gameTitle || currentAppMode !== 'view' || !isViewCounterOpen) {
+        updateDynamicLayout();
+        return;
+      }
+      
+      let stat = getGameStats(gameTitle);
+      if (!stat || !stat.counters || stat.counters.length === 0) {
+        updateDynamicLayout();
+        return;
+      }
+
+      let html = '';
+      stat.counters.forEach(c => {
+        let targetText = c.targetValue ? `<span style="color:#FFE066; font-size:11px; margin-left:4px;">(${escapeHtml(c.targetValue)})</span>` : '';
+        html += `
+          <div class="quick-counter-item">
+            <div style="display:flex; flex-direction:column;">
+              <div style="font-size:14px; font-weight:bold; color:#fff;">${escapeHtml(c.name)} ${targetText}</div>
+              <div style="font-size:11px; color:var(--text-sub);">증감: ±${c.step}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <button class="btn-small" style="background:#555; font-size:18px; font-weight:bold; padding:4px 14px;" onclick="updateCounterValue('${c.id}', -1)">-</button>
+              <span style="font-size:20px; font-weight:bold; color:#03dac6; min-width:40px; text-align:center;">${c.value}</span>
+              <button class="btn-small" style="background:var(--accent-color); color:#1a1a1a; font-size:18px; font-weight:bold; padding:4px 14px;" onclick="updateCounterValue('${c.id}', 1)">+</button>
+            </div>
+          </div>
+        `;
+      });
+      scrollArea.innerHTML = html;
+      
+      // 랜더링 후 레이아웃 재계산
+      updateDynamicLayout();
+    }
+
     function renderViewMode() {
       const container = document.getElementById('viewListContainer');
       const selectedGame = document.getElementById('gameSelectView').value;
+      
+      // 하단 퀵 카운터 패널 업데이트
+      renderViewQuickCounters(selectedGame);
+
       container.innerHTML = '';
 
       if (!selectedGame) {
@@ -2677,7 +2858,6 @@
        return (h * 3600000) + (m * 60000) + (s * 1000) + (ms * 10);
     }
 
-    // [수정됨] Counter 추가 항목 로직 업데이트 (필요수치 추가)
     function addCounterPrompt() {
       if(!currentGameTitle) return;
       openTextInputModal("새 항목 추가", "예: 데스 카운트", "추가할 항목의 이름을 입력하세요:", function(name) {
@@ -2686,7 +2866,6 @@
              let step = parseInt(stepVal);
              if(isNaN(step) || step <= 0) step = 1;
              
-             // 필요 수치 입력 모달 추가 실행
              openTextInputModal("필요 수치 (선택)", "예: 100", "목표로 하는 필요 수치를 입력하세요 (공란 가능):", function(targetVal) {
                  let stat = getGameStats(currentGameTitle);
                  stat.counters.push({
@@ -2704,7 +2883,6 @@
       });
     }
 
-    // [추가됨] Counter 항목 수정 기능
     let currentEditCounterId = null;
 
     function openCounterEditModal(id) {
@@ -2747,12 +2925,19 @@
     }
 
     function updateCounterValue(id, deltaSign) {
-      let stat = getGameStats(currentGameTitle);
+      let targetGame = currentGameTitle;
+      const viewSelectVal = document.getElementById('gameSelectView').value;
+      if (document.getElementById('btnViewMode').classList.contains('active') && viewSelectVal) {
+         targetGame = viewSelectVal;
+      }
+
+      let stat = getGameStats(targetGame);
       let item = stat.counters.find(c => c.id === id);
       if(item) {
         item.value += (item.step * deltaSign);
         saveNodeToDB(stat);
         renderCounters();
+        renderViewQuickCounters(targetGame);
       }
     }
 
@@ -2780,7 +2965,6 @@
       }
     }
 
-    // [수정됨] Counter 리스트 렌더링 시 연필 아이콘 및 필요수치 반영
     function renderCounters() {
       const container = document.getElementById('counterListContainer');
       if(!currentGameTitle) {
@@ -2851,7 +3035,6 @@
          stat.laps[currentEditLapIndex].timeStr = document.getElementById('lapEditTime').value;
          stat.laps[currentEditLapIndex].note = document.getElementById('lapEditNote').value;
          
-         // 시간을 오름차순으로 재정렬합니다.
          stat.laps.sort((a, b) => parseTime(a.timeStr) - parseTime(b.timeStr));
          
          saveNodeToDB(stat);
@@ -2870,7 +3053,6 @@
       });
     }
 
-    // 선택한 랩타임 시간으로 스톱워치를 동기화하는 함수
     function syncStopwatchToLap(idx) {
        if(!currentGameTitle) return;
        openConfirmActionModal("시간 동기화", "해당 시간부터 다시 기록하겠습니까?", function() {
@@ -2929,7 +3111,6 @@
        openTextInputModal("랩타임 기록", "이벤트 내용 입력...", `현재 시간 [${timeStr}]에 대한 메모를 입력하세요 (선택):`, function(note) {
            stat.laps.push({ timeStr: timeStr, note: note || '이벤트 기록됨' });
            
-           // 시간을 오름차순으로 재정렬합니다.
            stat.laps.sort((a, b) => parseTime(a.timeStr) - parseTime(b.timeStr));
            
            saveNodeToDB(stat);
@@ -3005,7 +3186,6 @@
        }
        
        let html = '';
-       // 가장 최근 시간(가장 큰 시간 값)이 위로 오도록 역순(length-1 부터 0까지) 렌더링
        for (let i = stat.laps.length - 1; i >= 0; i--) {
           let lap = stat.laps[i];
           html += `<div class="lap-item" onclick="openLapEditModal(${i})">
@@ -3026,29 +3206,22 @@
     const btnInstall = document.getElementById('btnInstall');
 
     window.addEventListener('beforeinstallprompt', (e) => {
-      // 크롬의 기본 미니 정보바가 자동 표시되는 것을 방지합니다.
       e.preventDefault();
-      // 이벤트를 나중에 사용하기 위해 저장합니다.
       deferredPrompt = e;
-      // 설치 조건이 충족되었으므로 하단의 [설치] 버튼을 보여줍니다.
       btnInstall.style.display = 'inline-block';
     });
 
     btnInstall.addEventListener('click', async () => {
       if (deferredPrompt) {
-        // 사용자에게 설치 프롬프트를 띄웁니다.
         deferredPrompt.prompt();
-        // 사용자가 설치를 수락했는지 거절했는지 결과를 기다립니다.
         const { outcome } = await deferredPrompt.userChoice;
         console.log(`User response to the install prompt: ${outcome}`);
-        // 한 번 띄운 프롬프트는 재사용할 수 없으므로 비우고 버튼을 숨깁니다.
         deferredPrompt = null;
         btnInstall.style.display = 'none';
       }
     });
 
     window.addEventListener('appinstalled', () => {
-      // 설치가 완료되면 버튼을 완전히 숨깁니다.
       btnInstall.style.display = 'none';
       console.log('PWA가 기기에 성공적으로 설치되었습니다.');
     });
