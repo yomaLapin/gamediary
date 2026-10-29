@@ -2,17 +2,17 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-  <title>GameCheck - 게임다이어리</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, viewport-fit=cover">
+  <title>GameDiary - 게임다이어리</title>
   
-  <!-- PWA 웹앱 독립 실행 모드(새 탭 생성 방지) 메타 설정 -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#242424">
   
-  <!-- PWA 설치 필수 조건인 아이콘(Icon) 데이터가 포함된 manifest -->
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22GameCheck%22%2C%22short_name%22%3A%22GameCheck%22%2C%22display%22%3A%22standalone%22%2C%22start_url%22%3A%22.%22%2C%22background_color%22%3A%22%23242424%22%2C%22theme_color%22%3A%22%23242424%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27192%27%20height%3D%27192%27%253E%253Crect%20width%3D%27192%27%20height%3D%27192%27%20fill%3D%27%2523bb86fc%27%2F%253E%253Ctext%20x%3D%2750%2525%27%20y%3D%2750%2525%27%20dominant-baseline%3D%27middle%27%20text-anchor%3D%27middle%27%20font-size%3D%2780%27%253E%25F0%259F%258E%25AE%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%2C%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%253Csvg%20xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27%20width%3D%27512%27%20height%3D%27512%27%253E%253Crect%20width%3D%27512%27%20height%3D%27512%27%20fill%3D%27%2523bb86fc%27%2F%253E%253Ctext%20x%3D%2750%2525%27%20y%3D%2750%2525%27%20dominant-baseline%3D%27middle%27%20text-anchor%3D%27middle%27%20font-size%3D%27200%27%253E%25F0%259F%258E%25AE%253C%2Ftext%253E%253C%2Fsvg%253E%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
+  <!-- 외부 매니페스트 및 iOS 아이콘 연결 -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
   <style>
     :root {
@@ -25,779 +25,130 @@
       --vh: 100vh;
     }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+    html, body { overscroll-behavior-y: contain; }
 
-    /* 모바일 당겨서 새로고침(Pull-to-refresh) 제스처 방지 설정 */
-    html, body {
-      overscroll-behavior-y: contain;
-    }
-
+    /* iOS 등 노치 및 하단 홈 인디케이터 대응을 위한 Safe Area 적용 */
     body {
       background-color: var(--bg-color);
       color: var(--text-color);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      padding-top: 150px;
-      padding-bottom: 110px;
+      padding-top: calc(150px + env(safe-area-inset-top));
+      padding-bottom: calc(110px + env(safe-area-inset-bottom));
       min-height: calc(var(--vh, 1vh) * 100);
       -webkit-overflow-scrolling: touch;
       transition: padding-bottom 0.3s;
     }
 
     /* 시작 선택 및 공통 모달 창 */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: rgba(0, 0, 0, 0.75);
-      z-index: 20000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-
-    .modal-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      width: 100%;
-      max-width: 400px;
-      padding: 24px;
-      text-align: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-    }
-
-    .modal-title {
-      font-size: 20px;
-      font-weight: bold;
-      color: var(--accent-color);
-      margin-bottom: 12px;
-    }
-
-    .modal-sub {
-      font-size: 13px;
-      color: var(--text-sub);
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
-    .modal-btn {
-      width: 100%;
-      padding: 14px;
-      margin-bottom: 10px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      font-size: 15px;
-      font-weight: bold;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .modal-btn-primary {
-      background-color: var(--accent-color);
-      color: #1a1a1a;
-    }
-
-    .modal-btn-secondary {
-      background-color: #383838;
-      color: #03dac6;
-      border-color: #03dac6;
-    }
-
-    .modal-btn-ghost {
-      background-color: #424242;
-      color: #fff;
-    }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.75); z-index: 20000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; width: 100%; max-width: 400px; padding: 24px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+    .modal-title { font-size: 20px; font-weight: bold; color: var(--accent-color); margin-bottom: 12px; }
+    .modal-sub { font-size: 13px; color: var(--text-sub); margin-bottom: 20px; line-height: 1.5; }
+    .modal-btn { width: 100%; padding: 14px; margin-bottom: 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .modal-btn-primary { background-color: var(--accent-color); color: #1a1a1a; }
+    .modal-btn-secondary { background-color: #383838; color: #03dac6; border-color: #03dac6; }
+    .modal-btn-ghost { background-color: #424242; color: #fff; }
 
     @keyframes pulse-border {
       0% { box-shadow: inset 0 0 10px rgba(0, 210, 255, 0.2); border-color: rgba(0, 210, 255, 0.2); }
       50% { box-shadow: inset 0 0 25px rgba(0, 210, 255, 0.8); border-color: rgba(0, 210, 255, 0.8); }
       100% { box-shadow: inset 0 0 10px rgba(0, 210, 255, 0.2); border-color: rgba(0, 210, 255, 0.2); }
     }
-    .stopwatch-active-border {
-      position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      border: 3px solid transparent;
-      pointer-events: none;
-      z-index: 10000;
-      transition: all 0.3s ease;
-    }
-    .stopwatch-active-border.active {
-      animation: pulse-border 2.5s infinite;
-    }
+    .stopwatch-active-border { position: fixed; top: 0; left: 0; right: 0; bottom: 0; border: 3px solid transparent; pointer-events: none; z-index: 10000; transition: all 0.3s ease; }
+    .stopwatch-active-border.active { animation: pulse-border 2.5s infinite; }
 
-    .fixed-top-wrapper {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      z-index: 1000;
-      background-color: var(--card-bg);
-      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    }
-
-    .mode-header {
-      display: flex;
-      background-color: #1a1a1a;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .mode-btn {
-      flex: 1;
-      padding: 12px;
-      background: none;
-      border: none;
-      color: var(--text-sub);
-      font-size: 14px;
-      font-weight: bold;
-      text-align: center;
-      cursor: pointer;
-    }
-
-    .mode-btn.active {
-      color: var(--accent-color);
-      border-bottom: 3px solid var(--accent-color);
-      background-color: #2b2b2b;
-    }
-
-    .sticky-header {
-      background-color: var(--card-bg);
-      border-bottom: 2px solid var(--border-color);
-      padding: 8px 10px;
-    }
-
-    .tag-container {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-bottom: 6px;
-    }
-
-    .btn-tag {
-      background-color: #3b3b3b;
-      color: #03dac6;
-      border: 1px solid #03dac6;
-      border-radius: 20px;
-      padding: 8px 14px;
-      font-size: 14px;
-      font-weight: bold;
-      touch-action: manipulation;
-      cursor: pointer;
-    }
-
-    .btn-tag:active {
-      background-color: #03dac6;
-      color: #1a1a1a;
-    }
-
-    .dpad-container {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      white-space: nowrap;
-      justify-content: flex-start;
-      background-color: #262626;
-      border-radius: 8px;
-      padding: 4px;
-    }
-
-    .btn-dpad {
-      background-color: #3b3b3b;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
-      padding: 6px 16px;
-      font-size: 18px;
-      touch-action: manipulation;
-      cursor: pointer;
-    }
-
-    .btn-dpad:active {
-      background-color: var(--accent-color);
-    }
-
-    .container {
-      padding: 10px;
-      max-width: 600px;
-      margin: 0 auto;
-    }
-
-    .game-select-bar {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 10px 12px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .game-select-bar select {
-      flex: 1;
-      min-width: 120px;
-      background-color: #222222;
-      color: #fff;
-      border: 1px solid var(--border-color);
-      padding: 8px;
-      border-radius: 6px;
-      font-size: 14px;
-    }
-
-    .tree-section {
-      background-color: var(--card-bg);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 16px;
-      border: 1px solid var(--border-color);
-    }
-
-    .tree-title {
-      font-size: 16px;
-      font-weight: bold;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .tree-node {
-      margin-left: 12px;
-      border-left: 2px solid #555555;
-      padding-left: 8px;
-      margin-top: 6px;
-    }
-
-    .node-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background-color: #3a3a3a;
-      padding: 8px 10px;
-      border-radius: 6px;
-      margin-bottom: 4px;
-    }
-
-    .node-header.active {
-      border: 2px solid var(--accent-color);
-      background-color: #3d314a;
-    }
-
-    .node-title {
-      font-size: 14px;
-      font-weight: bold;
-      flex: 1;
-      cursor: pointer;
-    }
-
-    .node-btns {
-      display: flex;
-      gap: 4px;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .btn-small {
-      background-color: #4a4a4a;
-      color: #fff;
-      border: none;
-      padding: 6px 8px;
-      border-radius: 4px;
-      font-size: 12px;
-      cursor: pointer;
-    }
-
-    .workspace {
-      background-color: var(--card-bg);
-      border-radius: 8px;
-      padding: 14px;
-      border: 1px solid var(--border-color);
-    }
-
-    .active-title-banner {
-      background-color: #3b3b3b;
-      border: 1px solid var(--accent-color);
-      padding: 10px 12px;
-      border-radius: 6px;
-      margin-bottom: 14px;
-      cursor: pointer;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      transition: background-color 0.2s;
-    }
-
-    .active-title-banner:active {
-      background-color: #4a4a4a;
-    }
-
-    .field-group {
-      margin-bottom: 14px;
-    }
-
-    .field-label {
-      font-size: 13px;
-      color: var(--text-sub);
-      margin-bottom: 6px;
-      display: block;
-    }
-
-    input[type="text"], input[type="number"] {
-      width: 100%;
-      background-color: #222222;
-      border: 1px solid var(--border-color);
-      color: #fff;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 16px; 
-    }
-
-    .rich-textarea {
-      width: 100%;
-      background-color: #222222;
-      border: 1px solid var(--border-color);
-      color: #fff;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 16px; 
-      min-height: 80px;
-      outline: none;
-      overflow-y: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-      user-select: text;
-      -webkit-user-select: text;
-    }
-
-    .rich-textarea:empty:before {
-      content: attr(placeholder);
-      color: var(--text-sub);
-      pointer-events: none;
-      display: block;
-    }
-
-    .color-btn {
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      border: 2px solid transparent;
-      cursor: pointer;
-      transition: transform 0.2s, border-color 0.2s;
-      padding: 0;
-    }
-
-    .color-btn.selected-color {
-      border-color: var(--accent-color);
-      transform: scale(1.2);
-    }
-
-    .btn-map-toggle {
-      width: 100%;
-      background-color: #3b3b3b;
-      color: #03dac6;
-      border: 1px solid #03dac6;
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-bottom: 8px;
-    }
-
-    .map-drawing-container {
-      background-color: #2b2b2b;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 10px;
-      margin-top: 8px;
-    }
-
-    .canvas-container {
-      position: relative;
-      width: 100%;
-      background-color: #1a1a1a;
-      border-radius: 8px;
-      overflow: hidden;
-      margin-top: 8px;
-      touch-action: none;
-    }
-
-    canvas {
-      display: block;
-      width: 100%;
-      height: auto;
-      background-color: #262626;
-    }
-
-    .drawing-tools {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      margin-top: 8px;
-      flex-wrap: wrap;
-    }
-
-    .color-picker-wrapper {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: #3b3b3b;
-      padding: 4px;
-      border-radius: 6px;
-      border: 1px solid var(--border-color);
-    }
-
-    .color-picker-input {
-      width: 28px;
-      height: 28px;
-      border: none;
-      border-radius: 50%;
-      background: none;
-      cursor: pointer;
-    }
-
-    .btn-tool {
-      background-color: #4a4a4a;
-      color: #fff;
-      border: 1px solid var(--border-color);
-      padding: 6px 12px;
-      border-radius: 6px;
-      font-size: 16px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .btn-tool.active {
-      background-color: var(--accent-color);
-      color: #1a1a1a;
-      font-weight: bold;
-    }
-
-    .sticker-container {
-      display: flex;
-      gap: 6px;
-      overflow-x: auto;
-      white-space: nowrap;
-      margin-top: 8px;
-      padding-bottom: 4px;
-    }
-
-    .btn-sticker {
-      background-color: #3b3b3b;
-      color: #fff;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 8px 12px;
-      font-size: 18px;
-      cursor: pointer;
-    }
-
-    .btn-sticker.active {
-      background-color: #03dac6;
-      color: #1a1a1a;
-      border-color: #03dac6;
-      font-weight: bold;
-    }
-
-    .completed {
-      text-decoration: line-through;
-      color: var(--text-sub) !important;
-      opacity: 0.5;
-    }
-
-    .node-checkbox {
-      width: 18px;
-      height: 18px;
-      accent-color: var(--accent-color);
-      cursor: pointer;
-      margin-right: 8px;
-    }
-
-    .view-card {
-      background-color: var(--card-bg);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      margin-bottom: 12px;
-      overflow: hidden;
-    }
-
-    .accordion-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background-color: #3a3a3a;
-      padding: 12px 14px;
-      cursor: pointer;
-    }
-
-    .accordion-header-title {
-      display: flex;
-      align-items: center;
-      font-size: 16px;
-      font-weight: bold;
-      color: var(--accent-color);
-      flex: 1;
-    }
-
-    .accordion-toggle-icon {
-      font-size: 12px;
-      color: var(--text-sub);
-      margin-left: 8px;
-    }
-
-    .accordion-body {
-      display: none;
-      padding: 12px;
-      border-top: 1px solid var(--border-color);
-      background-color: #282828;
-    }
-
-    .accordion-body.open {
-      display: block;
-    }
-
-    .child-view-card {
-      background-color: #333333;
-      border: 1px solid #484848;
-      border-radius: 6px;
-      padding: 10px;
-      margin-top: 8px;
-      margin-left: 10px;
-    }
-
-    .view-card-img {
-      width: 100%;
-      max-height: 250px;
-      object-fit: contain;
-      background-color: #1a1a1a;
-      border-radius: 6px;
-      margin-top: 8px;
-      margin-bottom: 8px;
-    }
-
-    .global-stopwatch-bar {
-      position: fixed;
-      bottom: 45px;
-      left: 0;
-      right: 0;
-      height: 55px;
-      background-color: #1a1a1a;
-      border-top: 1px solid var(--accent-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 15px;
-      z-index: 1500;
-      box-shadow: 0 -2px 10px rgba(0,0,0,0.5);
-      display: none; /* 기본 상태: 숨김 */
-    }
-
-    .sw-display {
-      font-size: 22px;
-      font-weight: bold;
-      color: #03dac6;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .sw-controls {
-      display: flex;
-      gap: 8px;
-    }
-
-    .sw-btn {
-      padding: 8px 16px;
-      border: none;
-      border-radius: 6px;
-      font-size: 14px;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .scrollable-area {
-      max-height: 35vh;
-      overflow-y: auto;
-      background-color: #222;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 14px;
-    }
-
-    .counter-card {
-      background-color: #2b2b2b;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .counter-info {
-      display: flex;
-      flex-direction: row;
-      align-items: flex-start;
-      gap: 10px;
-    }
+    .fixed-top-wrapper { position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background-color: var(--card-bg); box-shadow: 0 4px 10px rgba(0,0,0,0.4); padding-top: env(safe-area-inset-top); }
+    .mode-header { display: flex; background-color: #1a1a1a; border-bottom: 1px solid var(--border-color); }
+    .mode-btn { flex: 1; padding: 12px; background: none; border: none; color: var(--text-sub); font-size: 14px; font-weight: bold; text-align: center; cursor: pointer; }
+    .mode-btn.active { color: var(--accent-color); border-bottom: 3px solid var(--accent-color); background-color: #2b2b2b; }
+    .sticky-header { background-color: var(--card-bg); border-bottom: 2px solid var(--border-color); padding: 8px 10px; }
+    .tag-container { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+    .btn-tag { background-color: #3b3b3b; color: #03dac6; border: 1px solid #03dac6; border-radius: 20px; padding: 8px 14px; font-size: 14px; font-weight: bold; touch-action: manipulation; cursor: pointer; }
+    .btn-tag:active { background-color: #03dac6; color: #1a1a1a; }
+    .dpad-container { display: flex; gap: 6px; overflow-x: auto; white-space: nowrap; justify-content: flex-start; background-color: #262626; border-radius: 8px; padding: 4px; }
+    .btn-dpad { background-color: #3b3b3b; color: #fff; border: none; border-radius: 6px; padding: 6px 16px; font-size: 18px; touch-action: manipulation; cursor: pointer; }
+    .btn-dpad:active { background-color: var(--accent-color); }
+    .container { padding: 10px; max-width: 600px; margin: 0 auto; }
     
-    .counter-text-group {
-      display: flex;
-      flex-direction: column;
-    }
+    .game-select-bar { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .game-select-bar select { flex: 1; min-width: 120px; background-color: #222222; color: #fff; border: 1px solid var(--border-color); padding: 8px; border-radius: 6px; font-size: 14px; }
+    .tree-section { background-color: var(--card-bg); border-radius: 8px; padding: 12px; margin-bottom: 16px; border: 1px solid var(--border-color); }
+    .tree-title { font-size: 16px; font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+    .tree-node { margin-left: 12px; border-left: 2px solid #555555; padding-left: 8px; margin-top: 6px; }
+    .node-header { display: flex; align-items: center; justify-content: space-between; background-color: #3a3a3a; padding: 8px 10px; border-radius: 6px; margin-bottom: 4px; }
+    .node-header.active { border: 2px solid var(--accent-color); background-color: #3d314a; }
+    .node-title { font-size: 14px; font-weight: bold; flex: 1; cursor: pointer; }
+    .node-btns { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+    .btn-small { background-color: #4a4a4a; color: #fff; border: none; padding: 6px 8px; border-radius: 4px; font-size: 12px; cursor: pointer; }
     
-    .counter-name-wrap {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-    }
+    .workspace { background-color: var(--card-bg); border-radius: 8px; padding: 14px; border: 1px solid var(--border-color); }
+    .active-title-banner { background-color: #3b3b3b; border: 1px solid var(--accent-color); padding: 10px 12px; border-radius: 6px; margin-bottom: 14px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: background-color 0.2s; }
+    .active-title-banner:active { background-color: #4a4a4a; }
+    .field-group { margin-bottom: 14px; }
+    .field-label { font-size: 13px; color: var(--text-sub); margin-bottom: 6px; display: block; }
+    input[type="text"], input[type="number"] { width: 100%; background-color: #222222; border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 6px; font-size: 16px; }
+    .rich-textarea { width: 100%; background-color: #222222; border: 1px solid var(--border-color); color: #fff; padding: 10px; border-radius: 6px; font-size: 16px; min-height: 80px; outline: none; overflow-y: auto; white-space: pre-wrap; word-break: break-word; user-select: text; -webkit-user-select: text; }
+    .rich-textarea:empty:before { content: attr(placeholder); color: var(--text-sub); pointer-events: none; display: block; }
+    .color-btn { width: 22px; height: 22px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; transition: transform 0.2s, border-color 0.2s; padding: 0; }
+    .color-btn.selected-color { border-color: var(--accent-color); transform: scale(1.2); }
     
-    .counter-name {
-      font-size: 15px;
-      font-weight: bold;
-      color: #fff;
-    }
-
-    .counter-step {
-      font-size: 11px;
-      color: var(--text-sub);
-    }
-
-    .counter-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .counter-value {
-      font-size: 20px;
-      font-weight: bold;
-      color: #03dac6;
-      min-width: 36px;
-      text-align: center;
-    }
-
-    .lap-item {
-      font-size: 14px; 
-      color: #fff;
-      border-bottom: 1px solid #444;
-      padding: 10px 4px;
-      display: flex;
-      align-items: center;
-      cursor: pointer; 
-    }
-
-    .lap-item:active {
-      background-color: #333;
-    }
-
-    .lap-time {
-      color: var(--accent-color);
-      font-weight: bold;
-      width: 90px;
-      flex-shrink: 0;
-    }
-
-    .lap-note {
-      flex: 1;
-      text-align: left;
-      margin-left: 10px;
-      word-break: break-all;
-    }
-
-    .fixed-bottom-wrapper {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 45px;
-      z-index: 1000;
-      background-color: var(--card-bg);
-      border-top: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0 12px;
-      box-shadow: 0 -4px 10px rgba(0,0,0,0.4);
-    }
+    .btn-map-toggle { width: 100%; background-color: #3b3b3b; color: #03dac6; border: 1px solid #03dac6; padding: 10px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; margin-bottom: 8px; }
+    .map-drawing-container { background-color: #2b2b2b; border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; margin-top: 8px; }
+    .canvas-container { position: relative; width: 100%; background-color: #1a1a1a; border-radius: 8px; overflow: hidden; margin-top: 8px; touch-action: none; }
+    canvas { display: block; width: 100%; height: auto; background-color: #262626; }
+    .drawing-tools { display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
+    .color-picker-wrapper { display: flex; align-items: center; justify-content: center; background: #3b3b3b; padding: 4px; border-radius: 6px; border: 1px solid var(--border-color); }
+    .color-picker-input { width: 28px; height: 28px; border: none; border-radius: 50%; background: none; cursor: pointer; }
+    .btn-tool { background-color: #4a4a4a; color: #fff; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .btn-tool.active { background-color: var(--accent-color); color: #1a1a1a; font-weight: bold; }
+    .sticker-container { display: flex; gap: 6px; overflow-x: auto; white-space: nowrap; margin-top: 8px; padding-bottom: 4px; }
+    .btn-sticker { background-color: #3b3b3b; color: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; font-size: 18px; cursor: pointer; }
+    .btn-sticker.active { background-color: #03dac6; color: #1a1a1a; border-color: #03dac6; font-weight: bold; }
     
-    .bottom-info {
-      font-size: 11px;
-      color: var(--text-sub);
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
+    .completed { text-decoration: line-through; color: var(--text-sub) !important; opacity: 0.5; }
+    .node-checkbox { width: 18px; height: 18px; accent-color: var(--accent-color); cursor: pointer; margin-right: 8px; }
     
-    .bottom-actions {
-      display: flex;
-      gap: 6px;
-      align-items: center;
-    }
+    .view-card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+    .accordion-header { display: flex; align-items: center; justify-content: space-between; background-color: #3a3a3a; padding: 12px 14px; cursor: pointer; }
+    .accordion-header-title { display: flex; align-items: center; font-size: 16px; font-weight: bold; color: var(--accent-color); flex: 1; }
+    .accordion-toggle-icon { font-size: 12px; color: var(--text-sub); margin-left: 8px; }
+    .accordion-body { display: none; padding: 12px; border-top: 1px solid var(--border-color); background-color: #282828; }
+    .accordion-body.open { display: block; }
+    .child-view-card { background-color: #333333; border: 1px solid #484848; border-radius: 6px; padding: 10px; margin-top: 8px; margin-left: 10px; }
+    .view-card-img { width: 100%; max-height: 250px; object-fit: contain; background-color: #1a1a1a; border-radius: 6px; margin-top: 8px; margin-bottom: 8px; }
     
-    .btn-bottom {
-      background-color: #3b3b3b;
-      color: #fff;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 6px 12px;
-      font-size: 12px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+    .global-stopwatch-bar { position: fixed; bottom: calc(45px + env(safe-area-inset-bottom)); left: 0; right: 0; height: 55px; background-color: #1a1a1a; border-top: 1px solid var(--accent-color); display: flex; justify-content: space-between; align-items: center; padding: 0 15px; z-index: 1500; box-shadow: 0 -2px 10px rgba(0,0,0,0.5); display: none; }
+    .sw-display { font-size: 22px; font-weight: bold; color: #03dac6; font-variant-numeric: tabular-nums; }
+    .sw-controls { display: flex; gap: 8px; }
+    .sw-btn { padding: 8px 16px; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; }
     
-    .btn-bottom:active {
-      background-color: #4a4a4a;
-    }
-
+    .scrollable-area { max-height: 35vh; overflow-y: auto; background-color: #222; border: 1px solid var(--border-color); border-radius: 6px; padding: 10px; margin-bottom: 14px; }
+    .counter-card { background-color: #2b2b2b; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+    .counter-info { display: flex; flex-direction: row; align-items: flex-start; gap: 10px; }
+    .counter-text-group { display: flex; flex-direction: column; }
+    .counter-name-wrap { display: flex; align-items: center; flex-wrap: wrap; }
+    .counter-name { font-size: 15px; font-weight: bold; color: #fff; }
+    .counter-step { font-size: 11px; color: var(--text-sub); }
+    .counter-actions { display: flex; align-items: center; gap: 8px; }
+    .counter-value { font-size: 20px; font-weight: bold; color: #03dac6; min-width: 36px; text-align: center; }
+    
+    .lap-item { font-size: 14px; color: #fff; border-bottom: 1px solid #444; padding: 10px 4px; display: flex; align-items: center; cursor: pointer; }
+    .lap-item:active { background-color: #333; }
+    .lap-time { color: var(--accent-color); font-weight: bold; width: 90px; flex-shrink: 0; }
+    .lap-note { flex: 1; text-align: left; margin-left: 10px; word-break: break-all; }
+    
+    .fixed-bottom-wrapper { position: fixed; bottom: 0; left: 0; right: 0; height: calc(45px + env(safe-area-inset-bottom)); z-index: 1000; background-color: var(--card-bg); border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: flex-start; padding: 8px 12px 0 12px; box-shadow: 0 -4px 10px rgba(0,0,0,0.4); }
+    .bottom-info { font-size: 11px; color: var(--text-sub); display: flex; flex-direction: column; gap: 2px; }
+    .bottom-actions { display: flex; gap: 6px; align-items: center; }
+    .btn-bottom { background-color: #3b3b3b; color: #fff; border: 1px solid var(--border-color); border-radius: 6px; padding: 6px 12px; font-size: 12px; font-weight: bold; cursor: pointer; }
+    .btn-bottom:active { background-color: #4a4a4a; }
     .btn-tag-save { background-color: #a82828 !important; color: #ffffff !important; border-color: #e57373 !important; }
     .btn-tag-load { background-color: #1565c0 !important; color: #ffffff !important; border-color: #64b5f6 !important; }
-
-    /* 열람 모드 하단 퀵 카운터 패널 스타일 */
-    .view-quick-counter-wrapper {
-      position: fixed;
-      background-color: var(--card-bg);
-      border-top: 1px solid var(--border-color);
-      z-index: 1000;
-      padding: 10px 15px;
-      box-shadow: 0 -4px 10px rgba(0,0,0,0.5);
-      display: none; /* 열람 모드에서만 활성화 */
-      left: 0;
-      right: 0;
-    }
     
-    .view-quick-counter-scroll {
-      max-height: 145px; /* 약 3개 항목이 보이는 높이 */
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-
-    .quick-counter-item {
-      background-color: #222222;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 8px 12px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+    .view-quick-counter-wrapper { position: fixed; background-color: var(--card-bg); border-top: 1px solid var(--border-color); z-index: 1000; padding: 10px 15px; padding-bottom: calc(10px + env(safe-area-inset-bottom)); box-shadow: 0 -4px 10px rgba(0,0,0,0.5); display: none; left: 0; right: 0; }
+    .view-quick-counter-scroll { max-height: 145px; overflow-y: auto; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; gap: 6px; }
+    .quick-counter-item { background-color: #222222; border: 1px solid var(--border-color); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; }
   </style>
 </head>
 <body>
@@ -878,7 +229,7 @@
   <!-- 시작 선택 모달 창 -->
   <div class="modal-overlay" id="startModal" style="display:none;">
     <div class="modal-card">
-      <div class="modal-title">🎮 GameCheck-게임다이어리</div>
+      <div class="modal-title">🎮 GameDiary</div>
       <div class="modal-sub">작업 선택</div>
       <button class="modal-btn modal-btn-primary" onclick="startNewDiaryWorkflow()">
         <span>🆕</span> 새로 작성
@@ -956,7 +307,6 @@
   </div>
 
   <div class="container">
-
     <!-- 기록 모드 화면 -->
     <div id="recordSection">
       <div class="game-select-bar">
@@ -1097,7 +447,7 @@
   <div class="fixed-bottom-wrapper">
     <div class="bottom-info">
       <span>-제작: yomaLapin</span>
-      <span>-Ver: 202610-020</span>
+      <span>-Ver: 202610-020 (PWA)</span>
     </div>
     <div class="bottom-actions">
       <button class="btn-bottom" id="btnInstall" style="display:none; background-color: var(--accent-color); color: #1a1a1a;">[설치]</button>
@@ -1109,15 +459,14 @@
 
   <script>
     // ==========================================
-    // 앱 전역 상태 변수
+    // JS 코드는 기존 구조를 유지하되 안전영역 대응과
+    // 저장 파일명 GameCheck -> GameDiary 부분만 수정
     // ==========================================
     let currentAppMode = 'record';
     let isViewCounterOpen = false;
     let isViewTimerOpen = false;
 
-    // ==========================================
-    // 커스텀 모달 스크립트 (팝업 닫힘 충돌 해결)
-    // ==========================================
+    // 모달 제어 함수군
     let textInputCallback = null;
     function openTextInputModal(title, placeholder, desc, callback) {
       document.getElementById('textInputTitle').innerText = title;
@@ -1129,20 +478,12 @@
       document.getElementById('textInputModal').style.display = 'flex';
       setTimeout(() => inputEl.focus(), 100);
     }
-    
-    function closeTextInputModal() {
-      document.getElementById('textInputModal').style.display = 'none';
-      textInputCallback = null;
-    }
-    
+    function closeTextInputModal() { document.getElementById('textInputModal').style.display = 'none'; textInputCallback = null; }
     function submitTextInput() {
       const val = document.getElementById('textInputValue').value;
       const cb = textInputCallback;
       closeTextInputModal();
-      
-      if (getGameList().length === 0 && !cb) {
-        document.getElementById('startModal').style.display = 'flex';
-      }
+      if (getGameList().length === 0 && !cb) document.getElementById('startModal').style.display = 'flex';
       if (cb) setTimeout(() => cb(val), 150);
     }
 
@@ -1151,45 +492,21 @@
       document.getElementById('confirmActionTitle').innerText = title;
       document.getElementById('confirmActionSub').innerHTML = message.replace(/\n/g, '<br>');
       confirmActionCallback = callback;
-      
       const btn = document.getElementById('confirmActionBtn');
       const cancelBtn = document.getElementById('cancelActionBtn');
-      
-      if(callback) {
-        btn.innerText = "예 (진행)";
-        btn.style.backgroundColor = "#a82828";
-        cancelBtn.style.display = "block";
-      } else {
-        btn.innerText = "확인";
-        btn.style.backgroundColor = "#1565c0";
-        cancelBtn.style.display = "none";
-      }
-
+      if(callback) { btn.innerText = "예 (진행)"; btn.style.backgroundColor = "#a82828"; cancelBtn.style.display = "block"; }
+      else { btn.innerText = "확인"; btn.style.backgroundColor = "#1565c0"; cancelBtn.style.display = "none"; }
       document.getElementById('confirmActionModal').style.display = 'flex';
     }
-    
-    function closeConfirmActionModal() {
-      document.getElementById('confirmActionModal').style.display = 'none';
-      confirmActionCallback = null;
-    }
-    
-    function submitConfirmAction() {
-      if (confirmActionCallback) confirmActionCallback();
-      closeConfirmActionModal();
-    }
+    function closeConfirmActionModal() { document.getElementById('confirmActionModal').style.display = 'none'; confirmActionCallback = null; }
+    function submitConfirmAction() { if (confirmActionCallback) confirmActionCallback(); closeConfirmActionModal(); }
 
-    // ==========================================
-    // 노드 이동 및 시스템 함수 모음
-    // ==========================================
+    // 노드 관련 상태
     let nodeToMoveId = null;
-
     function isDescendant(parentId, childId) {
       if (parentId === childId) return true;
       let node = treeData.find(n => n.id === childId);
-      while (node && node.parentId) {
-        if (node.parentId === parentId) return true;
-        node = treeData.find(n => n.id === node.parentId);
-      }
+      while (node && node.parentId) { if (node.parentId === parentId) return true; node = treeData.find(n => n.id === node.parentId); }
       return false;
     }
 
@@ -1198,261 +515,128 @@
       nodeToMoveId = nodeId;
       const selectEl = document.getElementById('moveTargetSelect');
       selectEl.innerHTML = '';
-
       const gameNodes = treeData.filter(n => n.gameTitle === currentGameTitle && n.type !== 'gameStat');
       let hasOptions = false;
-
       gameNodes.forEach(n => {
         if (!isDescendant(nodeId, n.id)) {
           const opt = document.createElement('option');
-          opt.value = n.id;
-          opt.textContent = n.title;
-          selectEl.appendChild(opt);
-          hasOptions = true;
+          opt.value = n.id; opt.textContent = n.title;
+          selectEl.appendChild(opt); hasOptions = true;
         }
       });
-
-      if (!hasOptions) {
-        selectEl.innerHTML = '<option value="">이동 가능한 대상이 없습니다</option>';
-      }
-
+      if (!hasOptions) selectEl.innerHTML = '<option value="">이동 가능한 대상이 없습니다</option>';
       document.getElementById('moveNodeModal').style.display = 'flex';
     }
-
-    function closeMoveNodeModal() {
-      document.getElementById('moveNodeModal').style.display = 'none';
-      nodeToMoveId = null;
-    }
-
+    function closeMoveNodeModal() { document.getElementById('moveNodeModal').style.display = 'none'; nodeToMoveId = null; }
     function submitMoveNode(toRoot) {
       if (!nodeToMoveId) return;
       const node = treeData.find(n => n.id === nodeToMoveId);
       if (!node) return;
-
-      if (toRoot) {
-        node.parentId = null;
-      } else {
+      if (toRoot) node.parentId = null;
+      else {
         const targetId = document.getElementById('moveTargetSelect').value;
-        if (!targetId) {
-          openConfirmActionModal("알림", "이동할 대상을 선택해주세요.", null);
-          return;
-        }
+        if (!targetId) { openConfirmActionModal("알림", "이동할 대상을 선택해주세요.", null); return; }
         node.parentId = targetId;
-        
-        if (collapsedTreeNodes.has(targetId)) {
-          collapsedTreeNodes.delete(targetId);
-        }
+        if (collapsedTreeNodes.has(targetId)) collapsedTreeNodes.delete(targetId);
       }
-
-      saveNodeToDB(node);
-      renderTree();
-      closeMoveNodeModal();
+      saveNodeToDB(node); renderTree(); closeMoveNodeModal();
     }
 
     function moveNodeOrder(id, direction, event) {
       if (event) event.stopPropagation();
-      
       const node = treeData.find(n => n.id === id);
       if (!node) return;
-      
       const siblings = treeData.filter(n => n.gameTitle === node.gameTitle && n.parentId === node.parentId && n.type !== 'gameStat');
       siblings.sort((a, b) => a.order - b.order);
-      
       const sibIndex = siblings.findIndex(n => n.id === id);
-      
       if (direction === 'up' && sibIndex > 0) {
         const targetSibling = siblings[sibIndex - 1];
-        const temp = node.order;
-        node.order = targetSibling.order;
-        targetSibling.order = temp;
-        
-        saveNodeToDB(node);
-        saveNodeToDB(targetSibling);
+        const temp = node.order; node.order = targetSibling.order; targetSibling.order = temp;
+        saveNodeToDB(node); saveNodeToDB(targetSibling);
       } else if (direction === 'down' && sibIndex < siblings.length - 1) {
         const targetSibling = siblings[sibIndex + 1];
-        const temp = node.order;
-        node.order = targetSibling.order;
-        targetSibling.order = temp;
-        
-        saveNodeToDB(node);
-        saveNodeToDB(targetSibling);
+        const temp = node.order; node.order = targetSibling.order; targetSibling.order = temp;
+        saveNodeToDB(node); saveNodeToDB(targetSibling);
       }
-      
       treeData.sort((a, b) => a.order - b.order);
-      renderTree();
-      renderViewMode();
+      renderTree(); renderViewMode();
     }
 
-    function setRealHeight() {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
-    }
+    function setRealHeight() { const vh = window.innerHeight * 0.01; document.documentElement.style.setProperty('--vh', `${vh}px`); }
     window.addEventListener('resize', setRealHeight);
     setRealHeight();
 
     function toggleFullScreen() {
-      if (!document.fullscreenElement) {
-        document.documentElement.requestFullscreen().catch(err => {
-          console.log(`Error attempting to enable fullscreen: ${err.message}`);
-        });
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        }
-      }
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen().catch(err => console.log(err));
+      else if (document.exitFullscreen) document.exitFullscreen();
     }
 
     let db;
-    const request = indexedDB.open("GameCheckDB", 2);
-
+    const request = indexedDB.open("GameCheckDB", 2); // DB명 유지 원칙
     request.onupgradeneeded = function(e) {
       db = e.target.result;
-      if (!db.objectStoreNames.contains("treeNodes")) {
-        db.createObjectStore("treeNodes", { keyPath: "id" });
-      }
+      if (!db.objectStoreNames.contains("treeNodes")) db.createObjectStore("treeNodes", { keyPath: "id" });
     };
-
-    request.onsuccess = function(e) {
-      db = e.target.result;
-      loadTreeData();
-      switchMode('record');
-    };
+    request.onsuccess = function(e) { db = e.target.result; loadTreeData(); switchMode('record'); };
 
     const defaultQuickTags = ['[회복템]', '[무기]', '[탄약]', '[전투]', '[이벤트]'];
     let customQuickTags = JSON.parse(localStorage.getItem('gameCheck_customTags')) || defaultQuickTags;
 
-    let treeData = [];
-    let currentGameTitle = "";
-    let activeNodeId = null;
-    let currentColor = '#0000ff';
-    let currentTool = 'pointer';
-    let selectedSticker = '';
-    let isDrawing = false;
-    
-    let openAccordionIds = new Set();
-    let collapsedTreeNodes = new Set(); 
-
-    let currentNoteColor = '#F5F5F5';
-
-    const mainCanvas = document.getElementById('mapCanvas');
-    const mainCtx = mainCanvas.getContext('2d');
-
-    const drawingCanvas = document.createElement('canvas');
-    drawingCanvas.width = 500;
-    drawingCanvas.height = 400;
+    let treeData = []; let currentGameTitle = ""; let activeNodeId = null; let currentColor = '#0000ff';
+    let currentTool = 'pointer'; let selectedSticker = ''; let isDrawing = false;
+    let openAccordionIds = new Set(); let collapsedTreeNodes = new Set(); let currentNoteColor = '#F5F5F5';
+    const mainCanvas = document.getElementById('mapCanvas'); const mainCtx = mainCanvas.getContext('2d');
+    const drawingCanvas = document.createElement('canvas'); drawingCanvas.width = 500; drawingCanvas.height = 400;
     const drawingCtx = drawingCanvas.getContext('2d');
+    let bgImageObj = null; let bgScale = 1.0; let bgX = 0; let bgY = 0;
+    let stickers = []; let undoStack = []; let selectedTarget = null; let isDragging = false;
+    let hasDragged = false; let wasAlreadySelected = false; let dragStartPos = { x: 0, y: 0 };
+    let initialTargetPos = { x: 0, y: 0 }; let initialPinchDist = 0; let initialScale = 1.0;
+    let lastTapTime = 0; let lastTapPos = { x: 0, y: 0 };
 
-    let bgImageObj = null;
-    let bgScale = 1.0;
-    let bgX = 0;
-    let bgY = 0;
-
-    let stickers = [];
-    let undoStack = [];
-    let selectedTarget = null;
-    let isDragging = false;
-    let hasDragged = false;
-    let wasAlreadySelected = false;
-    let dragStartPos = { x: 0, y: 0 };
-    let initialTargetPos = { x: 0, y: 0 };
-    let initialPinchDist = 0;
-    let initialScale = 1.0;
-
-    let lastTapTime = 0;
-    let lastTapPos = { x: 0, y: 0 };
-
-    function closeStartModal() {
-      document.getElementById('startModal').style.display = 'none';
-    }
-
-    function triggerImportFromFile() {
-      document.getElementById('importFile').click();
-    }
-
+    function closeStartModal() { document.getElementById('startModal').style.display = 'none'; }
+    function triggerImportFromFile() { document.getElementById('importFile').click(); }
     function confirmAndTriggerLoad() {
-      if (treeData && treeData.length > 0) {
-        document.getElementById('loadConfirmModal').style.display = 'flex';
-      } else {
-        triggerImportFromFile();
-      }
+      if (treeData && treeData.length > 0) document.getElementById('loadConfirmModal').style.display = 'flex';
+      else triggerImportFromFile();
     }
-
-    function closeLoadConfirmModal() {
-      document.getElementById('loadConfirmModal').style.display = 'none';
-    }
-
-    function handleLoadWithSave() {
-      closeLoadConfirmModal();
-      exportData(); 
-      document.getElementById('loadAfterSaveModal').style.display = 'flex';
-    }
-
-    function proceedToLoad() {
-      document.getElementById('loadAfterSaveModal').style.display = 'none';
-      triggerImportFromFile();
-    }
-
-    function handleLoadWithoutSave() {
-      closeLoadConfirmModal();
-      triggerImportFromFile();
-    }
-
+    function closeLoadConfirmModal() { document.getElementById('loadConfirmModal').style.display = 'none'; }
+    function handleLoadWithSave() { closeLoadConfirmModal(); exportData(); document.getElementById('loadAfterSaveModal').style.display = 'flex'; }
+    function proceedToLoad() { document.getElementById('loadAfterSaveModal').style.display = 'none'; triggerImportFromFile(); }
+    function handleLoadWithoutSave() { closeLoadConfirmModal(); triggerImportFromFile(); }
     function startNewDiaryWorkflow() {
-      document.getElementById('startModal').style.display = 'none'; 
+      document.getElementById('startModal').style.display = 'none';
       openTextInputModal("새 게임 작성", "게임 이름 입력...", "새로 공략/기록할 게임 이름을 입력해 주세요:", function(title) {
         if (title && title.trim()) {
-          const trimmed = title.trim();
-          currentGameTitle = trimmed;
-          addRootNode(trimmed);
-          getGameStats(trimmed);
-          updateGameDropdowns();
+          const trimmed = title.trim(); currentGameTitle = trimmed;
+          addRootNode(trimmed); getGameStats(trimmed); updateGameDropdowns();
         }
       });
     }
 
     function adjustHeaderPadding() {
       const wrapper = document.getElementById('fixedTopWrapper');
-      if (wrapper) {
-        document.body.style.paddingTop = (wrapper.offsetHeight + 10) + 'px';
-      }
+      if (wrapper) document.body.style.paddingTop = `calc(${wrapper.offsetHeight + 10}px + env(safe-area-inset-top))`;
     }
-
-    const headerObserver = new ResizeObserver(() => {
-      adjustHeaderPadding();
-    });
+    const headerObserver = new ResizeObserver(() => adjustHeaderPadding());
 
     function renderQuickTags() {
-      const container = document.getElementById('tagContainer');
-      let html = '';
-      
-      customQuickTags.forEach(tag => {
-        html += `<button class="btn-tag" onmousedown="addTag(event, '${escapeHtml(tag)}')" ontouchstart="addTag(event, '${escapeHtml(tag)}')">${escapeHtml(tag)}</button>`;
-      });
-
-      container.innerHTML = html;
-      adjustHeaderPadding();
+      const container = document.getElementById('tagContainer'); let html = '';
+      customQuickTags.forEach(tag => html += `<button class="btn-tag" onmousedown="addTag(event, '${escapeHtml(tag)}')" ontouchstart="addTag(event, '${escapeHtml(tag)}')">${escapeHtml(tag)}</button>`);
+      container.innerHTML = html; adjustHeaderPadding();
     }
-
     function addQuickTagPrompt() {
       openTextInputModal("퀵 태그 추가", "예: 열쇠", "추가할 퀵 태그 이름을 입력하세요:", function(name) {
         if (name && name.trim()) {
           let tagName = name.trim();
           if (!tagName.startsWith('[')) tagName = '[' + tagName;
           if (!tagName.endsWith(']')) tagName = tagName + ']';
-          
-          customQuickTags.push(tagName);
-          localStorage.setItem('gameCheck_customTags', JSON.stringify(customQuickTags));
-          renderQuickTags();
+          customQuickTags.push(tagName); localStorage.setItem('gameCheck_customTags', JSON.stringify(customQuickTags)); renderQuickTags();
         }
       });
     }
-
     function deleteQuickTagPrompt() {
-      if (customQuickTags.length === 0) {
-        openConfirmActionModal("알림", "삭제할 퀵 태그가 없습니다.", null);
-        return;
-      }
-
+      if (customQuickTags.length === 0) { openConfirmActionModal("알림", "삭제할 퀵 태그가 없습니다.", null); return; }
       let tagListStr = customQuickTags.map((t, idx) => `${idx + 1}. ${t}`).join('\n');
       openTextInputModal("퀵 태그 삭제", "번호 입력", "삭제할 태그의 번호를 입력하세요:\n\n" + tagListStr, function(input) {
         if (input) {
@@ -1460,13 +644,9 @@
           if (!isNaN(idx) && idx >= 0 && idx < customQuickTags.length) {
             const targetTag = customQuickTags[idx];
             openConfirmActionModal("태그 삭제", `'${targetTag}' 태그를 삭제하시겠습니까?`, function() {
-              customQuickTags.splice(idx, 1);
-              localStorage.setItem('gameCheck_customTags', JSON.stringify(customQuickTags));
-              renderQuickTags();
+              customQuickTags.splice(idx, 1); localStorage.setItem('gameCheck_customTags', JSON.stringify(customQuickTags)); renderQuickTags();
             });
-          } else {
-            openConfirmActionModal("오류", "올바른 번호를 입력해 주세요.", null);
-          }
+          } else openConfirmActionModal("오류", "올바른 번호를 입력해 주세요.", null);
         }
       });
     }
@@ -1475,368 +655,157 @@
       treeData.forEach(node => {
         if (!node.gameTitle) node.gameTitle = "미지정 게임";
         if (node.completed === undefined) node.completed = false;
-        if (node.order === undefined) {
-          const ts = parseInt(node.id.replace('node_', '').replace('STAT_', ''));
-          node.order = isNaN(ts) ? Date.now() : ts;
-        }
+        if (node.order === undefined) { const ts = parseInt(node.id.replace('node_', '').replace('STAT_', '')); node.order = isNaN(ts) ? Date.now() : ts; }
       });
       treeData.sort((a, b) => a.order - b.order);
     }
-
-    function getGameList() {
-      const titles = treeData.map(node => node.gameTitle || "미지정 게임");
-      return [...new Set(titles)].filter(Boolean);
-    }
-
+    function getGameList() { const titles = treeData.map(node => node.gameTitle || "미지정 게임"); return [...new Set(titles)].filter(Boolean); }
     function updateGameDropdowns() {
       const games = getGameList();
       const recSelect = document.getElementById('gameSelectRecord');
       const viewSelect = document.getElementById('gameSelectView');
       const counterSelect = document.getElementById('gameSelectCounter');
-
       recSelect.innerHTML = '';
-      if (games.length === 0) {
-        recSelect.innerHTML = '<option value="">등록된 게임 없음</option>';
-      } else {
-        games.forEach(game => {
-          const opt = document.createElement('option');
-          opt.value = game;
-          opt.textContent = game;
-          if (game === currentGameTitle) opt.selected = true;
-          recSelect.appendChild(opt);
-        });
-      }
-
+      if (games.length === 0) recSelect.innerHTML = '<option value="">등록된 게임 없음</option>';
+      else games.forEach(game => { const opt = document.createElement('option'); opt.value = game; opt.textContent = game; if (game === currentGameTitle) opt.selected = true; recSelect.appendChild(opt); });
       const currentViewVal = viewSelect.value;
       viewSelect.innerHTML = '<option value="">-- 선택하세요 --</option>';
-      games.forEach(game => {
-        const opt = document.createElement('option');
-        opt.value = game;
-        opt.textContent = game;
-        if (game === currentViewVal) opt.selected = true;
-        viewSelect.appendChild(opt);
-      });
-
+      games.forEach(game => { const opt = document.createElement('option'); opt.value = game; opt.textContent = game; if (game === currentViewVal) opt.selected = true; viewSelect.appendChild(opt); });
       counterSelect.innerHTML = '';
-      if (games.length === 0) {
-        counterSelect.innerHTML = '<option value="">등록된 게임 없음</option>';
-      } else {
-        games.forEach(game => {
-          const opt = document.createElement('option');
-          opt.value = game;
-          opt.textContent = game;
-          if (game === currentGameTitle) opt.selected = true;
-          counterSelect.appendChild(opt);
-        });
-      }
-
-      if (currentGameTitle) {
-        localStorage.setItem('gameCheck_lastGame', currentGameTitle);
-      }
+      if (games.length === 0) counterSelect.innerHTML = '<option value="">등록된 게임 없음</option>';
+      else games.forEach(game => { const opt = document.createElement('option'); opt.value = game; opt.textContent = game; if (game === currentGameTitle) opt.selected = true; counterSelect.appendChild(opt); });
+      if (currentGameTitle) localStorage.setItem('gameCheck_lastGame', currentGameTitle);
       updateStopwatchUI();
     }
-
     function addNewGamePrompt() {
       openTextInputModal("새 게임 등록", "게임 이름 입력...", "새로 공략할 게임 이름을 입력하세요:", function(title) {
-        if (title && title.trim()) {
-          const trimmed = title.trim();
-          currentGameTitle = trimmed;
-          addRootNode(trimmed);
-          getGameStats(trimmed);
-          updateGameDropdowns();
-        }
+        if (title && title.trim()) { const trimmed = title.trim(); currentGameTitle = trimmed; addRootNode(trimmed); getGameStats(trimmed); updateGameDropdowns(); }
       });
     }
-
     function deleteCurrentGame() {
-      if (!currentGameTitle) {
-        openConfirmActionModal("알림", "삭제할 게임이 선택되지 않았습니다.", null);
-        return;
-      }
-
+      if (!currentGameTitle) { openConfirmActionModal("알림", "삭제할 게임이 선택되지 않았습니다.", null); return; }
       openConfirmActionModal("게임 삭제", `'${currentGameTitle}' 게임의 모든 공략 데이터와 맵, Counter 기록을 삭제하시겠습니까?`, function() {
         const nodesToDelete = treeData.filter(node => node.gameTitle === currentGameTitle);
         const deleteIds = nodesToDelete.map(node => node.id);
-
         treeData = treeData.filter(node => node.gameTitle !== currentGameTitle);
-
         const tx = db.transaction(["treeNodes"], "readwrite");
         const store = tx.objectStore("treeNodes");
         deleteIds.forEach(delId => store.delete(delId));
-
-        activeNodeId = null;
-        document.getElementById('workspace').style.display = 'none';
-
-        const remainingGames = getGameList();
-        currentGameTitle = remainingGames.length > 0 ? remainingGames[0] : "";
-
-        updateGameDropdowns();
-        renderTree();
-        renderCounters();
-        renderLaps();
-        updateStopwatchUI();
+        activeNodeId = null; document.getElementById('workspace').style.display = 'none';
+        const remainingGames = getGameList(); currentGameTitle = remainingGames.length > 0 ? remainingGames[0] : "";
+        updateGameDropdowns(); renderTree(); renderCounters(); renderLaps(); updateStopwatchUI();
         openConfirmActionModal("완료", "게임 데이터가 성공적으로 삭제되었습니다.", null);
       });
     }
-
     function onGameChangeRecord() {
       const recSelect = document.getElementById('gameSelectRecord');
-      if (recSelect.value) {
-        currentGameTitle = recSelect.value;
-        updateGameDropdowns();
-        activeNodeId = null;
-        document.getElementById('workspace').style.display = 'none';
-        renderTree();
-      }
+      if (recSelect.value) { currentGameTitle = recSelect.value; updateGameDropdowns(); activeNodeId = null; document.getElementById('workspace').style.display = 'none'; renderTree(); }
     }
-
     function onGameChangeCounter() {
       const counterSelect = document.getElementById('gameSelectCounter');
-      if (counterSelect.value) {
-        currentGameTitle = counterSelect.value;
-        updateGameDropdowns();
-        renderCounters();
-        renderLaps();
-      }
+      if (counterSelect.value) { currentGameTitle = counterSelect.value; updateGameDropdowns(); renderCounters(); renderLaps(); }
     }
-
     function toggleMapSection() {
       const container = document.getElementById('mapDrawingContainer');
-      if (container.style.display === 'none' || container.style.display === '') {
-        container.style.display = 'block';
-        selectPointerTool();
-      } else {
-        container.style.display = 'none';
-      }
+      if (container.style.display === 'none' || container.style.display === '') { container.style.display = 'block'; selectPointerTool(); } else container.style.display = 'none';
     }
-
-    // ==========================================
-    // 레이아웃 & 패딩 동적 계산 함수 추가
-    // ==========================================
+    
+    // 모바일 Safe Area 동적 패딩
     function updateDynamicLayout() {
        let bottomNavHeight = 45;
        let paddingSpace = 25;
        let swHeight = 55;
        let pb = bottomNavHeight + paddingSpace; 
-       
        const swBar = document.getElementById('globalStopwatchBar');
        const qcPanel = document.getElementById('viewQuickCounterPanel');
-       
        let isSwVisible = false;
-
-       // 1. 스톱워치 바 표시 유무 (모드 및 토글 상태에 따라 결정)
-       if (currentAppMode === 'record') {
-         swBar.style.display = 'none';
-       } else if (currentAppMode === 'counter') {
-         swBar.style.display = 'flex';
-         isSwVisible = true;
-       } else if (currentAppMode === 'view') {
-         if (isViewTimerOpen) {
-           swBar.style.display = 'flex';
-           isSwVisible = true;
-         } else {
-           swBar.style.display = 'none';
-         }
-       }
-
+       if (currentAppMode === 'record') swBar.style.display = 'none';
+       else if (currentAppMode === 'counter') { swBar.style.display = 'flex'; isSwVisible = true; }
+       else if (currentAppMode === 'view') { if (isViewTimerOpen) { swBar.style.display = 'flex'; isSwVisible = true; } else swBar.style.display = 'none'; }
        if (isSwVisible) pb += swHeight;
-       
-       // 2. 열람 모드 퀵 카운터 패널 표시 유무
        if (currentAppMode === 'view' && isViewCounterOpen) {
          const selectedGame = document.getElementById('gameSelectView').value;
          let stat = getGameStats(selectedGame);
          if (stat && stat.counters && stat.counters.length > 0) {
            qcPanel.style.display = 'block';
-           // 스톱워치가 켜져있으면 스톱워치 위에, 아니면 하단 내비게이션 바 바로 위에 띄움
-           qcPanel.style.bottom = isSwVisible ? (bottomNavHeight + swHeight) + 'px' : bottomNavHeight + 'px';
-           pb += 165; // 패널 높이만큼 여백 추가
-         } else {
-           qcPanel.style.display = 'none';
-         }
-       } else {
-         qcPanel.style.display = 'none';
-       }
-
-       // 3. 최종 바디 하단 여백 반영
-       document.body.style.paddingBottom = pb + 'px';
+           qcPanel.style.bottom = isSwVisible ? `calc(${bottomNavHeight + swHeight}px + env(safe-area-inset-bottom))` : `calc(${bottomNavHeight}px + env(safe-area-inset-bottom))`;
+           pb += 165;
+         } else qcPanel.style.display = 'none';
+       } else qcPanel.style.display = 'none';
+       document.body.style.paddingBottom = `calc(${pb}px + env(safe-area-inset-bottom))`;
     }
 
     function toggleViewCounter() {
       isViewCounterOpen = !isViewCounterOpen;
       const btn = document.getElementById('btnToggleViewCounter');
-      if (isViewCounterOpen) {
-        btn.innerText = "📊 카운터 닫기";
-        btn.style.background = "#03dac6";
-        btn.style.color = "#1a1a1a";
-      } else {
-        btn.innerText = "📊 카운터 열기";
-        btn.style.background = "#3b3b3b";
-        btn.style.color = "#03dac6";
-      }
+      if (isViewCounterOpen) { btn.innerText = "📊 카운터 닫기"; btn.style.background = "#03dac6"; btn.style.color = "#1a1a1a"; }
+      else { btn.innerText = "📊 카운터 열기"; btn.style.background = "#3b3b3b"; btn.style.color = "#03dac6"; }
       renderViewQuickCounters(document.getElementById('gameSelectView').value);
     }
-
     function toggleViewTimer() {
       isViewTimerOpen = !isViewTimerOpen;
       const btn = document.getElementById('btnToggleViewTimer');
-      if (isViewTimerOpen) {
-        btn.innerText = "⏱️ 타이머 닫기";
-        btn.style.background = "#bb86fc";
-        btn.style.color = "#1a1a1a";
-      } else {
-        btn.innerText = "⏱️ 타이머 열기";
-        btn.style.background = "#3b3b3b";
-        btn.style.color = "#bb86fc";
-      }
+      if (isViewTimerOpen) { btn.innerText = "⏱️ 타이머 닫기"; btn.style.background = "#bb86fc"; btn.style.color = "#1a1a1a"; }
+      else { btn.innerText = "⏱️ 타이머 열기"; btn.style.background = "#3b3b3b"; btn.style.color = "#bb86fc"; }
       updateDynamicLayout();
     }
-
     function switchMode(mode) {
       currentAppMode = mode;
-      
-      const btnRecord = document.getElementById('btnRecordMode');
-      const btnView = document.getElementById('btnViewMode');
-      const btnCounter = document.getElementById('btnCounterMode');
-      
-      const recordSection = document.getElementById('recordSection');
-      const viewSection = document.getElementById('viewSection');
-      const counterSection = document.getElementById('counterSection');
-      
-      const stickyQuickBar = document.getElementById('stickyQuickBar');
-      const stickyViewBar = document.getElementById('stickyViewBar');
-
-      btnRecord.classList.remove('active');
-      btnView.classList.remove('active');
-      btnCounter.classList.remove('active');
-      
-      recordSection.style.display = 'none';
-      viewSection.style.display = 'none';
-      counterSection.style.display = 'none';
-      stickyQuickBar.style.display = 'none';
-      stickyViewBar.style.display = 'none';
-
-      if (mode === 'record') {
-        btnRecord.classList.add('active');
-        recordSection.style.display = 'block';
-        stickyQuickBar.style.display = 'block';
-      } else if (mode === 'view') {
-        btnView.classList.add('active');
-        viewSection.style.display = 'block';
-        stickyViewBar.style.display = 'block';
-        updateGameDropdowns();
-        renderViewMode();
-      } else if (mode === 'counter') {
-        btnCounter.classList.add('active');
-        counterSection.style.display = 'block';
-        updateGameDropdowns();
-        renderCounters();
-        renderLaps();
-      }
-      
+      document.getElementById('btnRecordMode').classList.remove('active');
+      document.getElementById('btnViewMode').classList.remove('active');
+      document.getElementById('btnCounterMode').classList.remove('active');
+      document.getElementById('recordSection').style.display = 'none';
+      document.getElementById('viewSection').style.display = 'none';
+      document.getElementById('counterSection').style.display = 'none';
+      document.getElementById('stickyQuickBar').style.display = 'none';
+      document.getElementById('stickyViewBar').style.display = 'none';
+      if (mode === 'record') { document.getElementById('btnRecordMode').classList.add('active'); document.getElementById('recordSection').style.display = 'block'; document.getElementById('stickyQuickBar').style.display = 'block'; }
+      else if (mode === 'view') { document.getElementById('btnViewMode').classList.add('active'); document.getElementById('viewSection').style.display = 'block'; document.getElementById('stickyViewBar').style.display = 'block'; updateGameDropdowns(); renderViewMode(); }
+      else if (mode === 'counter') { document.getElementById('btnCounterMode').classList.add('active'); document.getElementById('counterSection').style.display = 'block'; updateGameDropdowns(); renderCounters(); renderLaps(); }
       updateDynamicLayout();
       setTimeout(adjustHeaderPadding, 10);
     }
-
-    function collapseAllAndViewTop() {
-      openAccordionIds.clear();
-      renderViewMode();
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-
+    function collapseAllAndViewTop() { openAccordionIds.clear(); renderViewMode(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
     function loadTreeData() {
       const wrapper = document.getElementById('fixedTopWrapper');
-      if (wrapper) {
-        headerObserver.observe(wrapper);
-      }
-
+      if (wrapper) headerObserver.observe(wrapper);
       renderQuickTags();
-
       const transaction = db.transaction(["treeNodes"], "readonly");
       const store = transaction.objectStore("treeNodes");
       const getAll = store.getAll();
-
       getAll.onsuccess = function() {
-        treeData = getAll.result || [];
-        sanitizeData();
-
-        collapsedTreeNodes.clear();
-        treeData.forEach(node => {
-          const hasChildren = treeData.some(child => child.parentId === node.id && child.type !== 'gameStat');
-          if (hasChildren) {
-            collapsedTreeNodes.add(node.id);
-          }
-        });
-
+        treeData = getAll.result || []; sanitizeData(); collapsedTreeNodes.clear();
+        treeData.forEach(node => { const hasChildren = treeData.some(child => child.parentId === node.id && child.type !== 'gameStat'); if (hasChildren) collapsedTreeNodes.add(node.id); });
         const games = getGameList();
         if (games.length > 0) {
           const savedLastGame = localStorage.getItem('gameCheck_lastGame');
-          if (savedLastGame && games.includes(savedLastGame)) {
-            currentGameTitle = savedLastGame;
-          } else {
-            currentGameTitle = games[games.length - 1]; 
-          }
+          if (savedLastGame && games.includes(savedLastGame)) currentGameTitle = savedLastGame;
+          else currentGameTitle = games[games.length - 1];
           document.getElementById('startModal').style.display = 'none';
-        } else {
-          document.getElementById('startModal').style.display = 'flex';
-        }
-
-        updateGameDropdowns();
-        renderTree();
-        
-        setInterval(stopwatchLoop, 50);
+        } else document.getElementById('startModal').style.display = 'flex';
+        updateGameDropdowns(); renderTree(); setInterval(stopwatchLoop, 50);
       };
     }
-
     function renderTree() {
-      const container = document.getElementById('treeContainer');
-      container.innerHTML = '';
-      
+      const container = document.getElementById('treeContainer'); container.innerHTML = '';
       const diaryTitleSpan = document.getElementById('diaryTitleSpan');
-      if (diaryTitleSpan) {
-        diaryTitleSpan.innerHTML = currentGameTitle ? `📌 ${escapeHtml(currentGameTitle)}` : '📌 Diary';
-      }
-
-      if (!currentGameTitle) {
-        container.innerHTML = '<div style="color: var(--text-sub); font-size:13px; text-align:center; padding:10px;">상단의 [+ 새 게임 등록] 버튼을 눌러 시작하세요.</div>';
-        return;
-      }
-
+      if (diaryTitleSpan) diaryTitleSpan.innerHTML = currentGameTitle ? `📌 ${escapeHtml(currentGameTitle)}` : '📌 Diary';
+      if (!currentGameTitle) { container.innerHTML = '<div style="color: var(--text-sub); font-size:13px; text-align:center; padding:10px;">상단의 [+ 새 게임 등록] 버튼을 눌러 시작하세요.</div>'; return; }
       treeData.sort((a, b) => a.order - b.order);
-
       const gameNodes = treeData.filter(node => node.gameTitle === currentGameTitle && node.type !== 'gameStat');
       const rootNodes = gameNodes.filter(node => node.parentId === null);
-
-      if (rootNodes.length === 0) {
-        container.innerHTML = '<div style="color: var(--text-sub); font-size:13px; text-align:center; padding:10px;">우측 상단 [+ 챕터 추가]를 눌러 첫 챕터를 만드세요.</div>';
-        return;
-      }
-
-      rootNodes.forEach(node => {
-        container.appendChild(createNodeElement(node));
-      });
+      if (rootNodes.length === 0) { container.innerHTML = '<div style="color: var(--text-sub); font-size:13px; text-align:center; padding:10px;">우측 상단 [+ 챕터 추가]를 눌러 첫 챕터를 만드세요.</div>'; return; }
+      rootNodes.forEach(node => container.appendChild(createNodeElement(node)));
     }
-
     function createNodeElement(node) {
-      const nodeEl = document.createElement('div');
-      nodeEl.className = 'tree-node';
-      nodeEl.id = `ui-node-${node.id}`;
-
-      const isSelected = activeNodeId === node.id;
-      const isCollapsed = collapsedTreeNodes.has(node.id);
-      
+      const nodeEl = document.createElement('div'); nodeEl.className = 'tree-node'; nodeEl.id = `ui-node-${node.id}`;
+      const isSelected = activeNodeId === node.id; const isCollapsed = collapsedTreeNodes.has(node.id);
       const children = treeData.filter(child => child.parentId === node.id && child.gameTitle === currentGameTitle && child.type !== 'gameStat');
       const hasChildren = children.length > 0;
-      
       let collapseBtnHtml = '';
-      if (hasChildren) {
-        collapseBtnHtml = `<button class="btn-small" style="background:#484848; color:#fff;" onclick="toggleTreeNode(event, '${node.id}')">${isCollapsed ? '펼치기' : '접기'}</button>`;
-      }
-
-      const header = document.createElement('div');
-      header.className = `node-header ${isSelected ? 'active' : ''}`;
-      
-      header.innerHTML = `
-        <span class="node-title" onclick="selectNode('${node.id}')">${escapeHtml(node.title)}</span>
+      if (hasChildren) collapseBtnHtml = `<button class="btn-small" style="background:#484848; color:#fff;" onclick="toggleTreeNode(event, '${node.id}')">${isCollapsed ? '펼치기' : '접기'}</button>`;
+      const header = document.createElement('div'); header.className = `node-header ${isSelected ? 'active' : ''}`;
+      header.innerHTML = `<span class="node-title" onclick="selectNode('${node.id}')">${escapeHtml(node.title)}</span>
         <div class="node-btns">
           <button class="btn-small" style="background:#3b3b3b; padding:6px;" onclick="moveNodeOrder('${node.id}', 'up', event)">▲</button>
           <button class="btn-small" style="background:#3b3b3b; padding:6px;" onclick="moveNodeOrder('${node.id}', 'down', event)">▼</button>
@@ -1844,1371 +813,328 @@
           <button class="btn-small" onclick="addChildNode('${node.id}')">+하위</button>
           <button class="btn-small" style="background:#1565c0;" onclick="openMoveNodeModal('${node.id}', event)">이동</button>
           <button class="btn-small" style="background:#a82828;" onclick="deleteNode('${node.id}')">Del</button>
-        </div>
-      `;
-
+        </div>`;
       nodeEl.appendChild(header);
-
       if (hasChildren && !isCollapsed) {
         const childrenContainer = document.createElement('div');
-        children.forEach(child => {
-          childrenContainer.appendChild(createNodeElement(child));
-        });
+        children.forEach(child => childrenContainer.appendChild(createNodeElement(child)));
         nodeEl.appendChild(childrenContainer);
       }
-
       return nodeEl;
     }
-
-    function toggleTreeNode(event, id) {
-      event.stopPropagation();
-      if (collapsedTreeNodes.has(id)) {
-        collapsedTreeNodes.delete(id);
-      } else {
-        collapsedTreeNodes.add(id);
-      }
-      renderTree();
-    }
-
-    function toggleAccordion(id) {
-      if (openAccordionIds.has(id)) {
-        openAccordionIds.delete(id);
-      } else {
-        openAccordionIds.add(id);
-      }
-      renderViewMode();
-    }
-
+    function toggleTreeNode(event, id) { event.stopPropagation(); if (collapsedTreeNodes.has(id)) collapsedTreeNodes.delete(id); else collapsedTreeNodes.add(id); renderTree(); }
+    function toggleAccordion(id) { if (openAccordionIds.has(id)) openAccordionIds.delete(id); else openAccordionIds.add(id); renderViewMode(); }
     function toggleNodeComplete(id, event) {
       if (event) event.stopPropagation();
-      const targetNode = treeData.find(n => n.id === id);
-      if (!targetNode) return;
-
+      const targetNode = treeData.find(n => n.id === id); if (!targetNode) return;
       const nextState = !targetNode.completed;
-
       function setCompletedRecursive(nodeId, state) {
-        const node = treeData.find(n => n.id === nodeId);
-        if (node) {
-          node.completed = state;
-          saveNodeToDB(node);
-        }
-        const children = treeData.filter(n => n.parentId === nodeId && n.type !== 'gameStat');
-        children.forEach(child => setCompletedRecursive(child.id, state));
+        const node = treeData.find(n => n.id === nodeId); if (node) { node.completed = state; saveNodeToDB(node); }
+        treeData.filter(n => n.parentId === nodeId && n.type !== 'gameStat').forEach(child => setCompletedRecursive(child.id, state));
       }
-
-      setCompletedRecursive(id, nextState);
-      renderTree();
-      renderViewMode();
+      setCompletedRecursive(id, nextState); renderTree(); renderViewMode();
     }
-
-    // [열람 모드 전용 퀵 카운터 패널 렌더링]
     function renderViewQuickCounters(gameTitle) {
       const scrollArea = document.getElementById('viewQuickCounterScroll');
-      
-      if (!gameTitle || currentAppMode !== 'view' || !isViewCounterOpen) {
-        updateDynamicLayout();
-        return;
-      }
-      
+      if (!gameTitle || currentAppMode !== 'view' || !isViewCounterOpen) { updateDynamicLayout(); return; }
       let stat = getGameStats(gameTitle);
-      if (!stat || !stat.counters || stat.counters.length === 0) {
-        updateDynamicLayout();
-        return;
-      }
-
+      if (!stat || !stat.counters || stat.counters.length === 0) { updateDynamicLayout(); return; }
       let html = '';
       stat.counters.forEach(c => {
         let targetText = c.targetValue ? `<span style="color:#FFE066; font-size:11px; margin-left:4px;">(${escapeHtml(c.targetValue)})</span>` : '';
-        html += `
-          <div class="quick-counter-item">
-            <div style="display:flex; flex-direction:column;">
-              <div style="font-size:14px; font-weight:bold; color:#fff;">${escapeHtml(c.name)} ${targetText}</div>
-              <div style="font-size:11px; color:var(--text-sub);">증감: ±${c.step}</div>
-            </div>
-            <div style="display:flex; align-items:center; gap:6px;">
-              <button class="btn-small" style="background:#555; font-size:18px; font-weight:bold; padding:4px 14px;" onclick="updateCounterValue('${c.id}', -1)">-</button>
-              <span style="font-size:20px; font-weight:bold; color:#03dac6; min-width:40px; text-align:center;">${c.value}</span>
-              <button class="btn-small" style="background:var(--accent-color); color:#1a1a1a; font-size:18px; font-weight:bold; padding:4px 14px;" onclick="updateCounterValue('${c.id}', 1)">+</button>
-            </div>
-          </div>
-        `;
+        html += `<div class="quick-counter-item"><div style="display:flex; flex-direction:column;"><div style="font-size:14px; font-weight:bold; color:#fff;">${escapeHtml(c.name)} ${targetText}</div><div style="font-size:11px; color:var(--text-sub);">증감: ±${c.step}</div></div><div style="display:flex; align-items:center; gap:6px;"><button class="btn-small" style="background:#555; font-size:18px; font-weight:bold; padding:4px 14px;" onclick="updateCounterValue('${c.id}', -1)">-</button><span style="font-size:20px; font-weight:bold; color:#03dac6; min-width:40px; text-align:center;">${c.value}</span><button class="btn-small" style="background:var(--accent-color); color:#1a1a1a; font-size:18px; font-weight:bold; padding:4px 14px;" onclick="updateCounterValue('${c.id}', 1)">+</button></div></div>`;
       });
-      scrollArea.innerHTML = html;
-      
-      // 랜더링 후 레이아웃 재계산
-      updateDynamicLayout();
+      scrollArea.innerHTML = html; updateDynamicLayout();
     }
-
     function renderViewMode() {
       const container = document.getElementById('viewListContainer');
       const selectedGame = document.getElementById('gameSelectView').value;
-      
-      // 하단 퀵 카운터 패널 업데이트
-      renderViewQuickCounters(selectedGame);
-
-      container.innerHTML = '';
-
-      if (!selectedGame) {
-        container.innerHTML = '<div style="color: var(--text-sub); text-align:center; padding:30px;">상단에서 열람할 GAME을 선택해주세요.</div>';
-        return;
-      }
-
+      renderViewQuickCounters(selectedGame); container.innerHTML = '';
+      if (!selectedGame) { container.innerHTML = '<div style="color: var(--text-sub); text-align:center; padding:30px;">상단에서 열람할 GAME을 선택해주세요.</div>'; return; }
       const gameNodes = treeData.filter(node => node.gameTitle === selectedGame && node.type !== 'gameStat');
       const rootNodes = gameNodes.filter(node => node.parentId === null);
-
-      if (rootNodes.length === 0) {
-        container.innerHTML = '<div style="color: var(--text-sub); text-align:center; padding:30px;">해당 게임에 저장된 공략이 없습니다.</div>';
-        return;
-      }
-
+      if (rootNodes.length === 0) { container.innerHTML = '<div style="color: var(--text-sub); text-align:center; padding:30px;">해당 게임에 저장된 공략이 없습니다.</div>'; return; }
       rootNodes.forEach(rootNode => {
-        const card = document.createElement('div');
-        card.className = 'view-card';
-
-        const isOpen = openAccordionIds.has(rootNode.id);
-        const isChecked = rootNode.completed ? 'checked' : '';
-        const completedClass = rootNode.completed ? 'completed' : '';
-
-        let html = `
-          <div class="accordion-header" onclick="toggleAccordion('${rootNode.id}')">
-            <div class="accordion-header-title ${completedClass}">
-              <input type="checkbox" class="node-checkbox" ${isChecked} onclick="toggleNodeComplete('${rootNode.id}', event)">
-              📌 ${escapeHtml(rootNode.title)}
-            </div>
-            <span class="accordion-toggle-icon">${isOpen ? '▲ 접기' : '▼ 펼치기'}</span>
-          </div>
-          <div class="accordion-body ${isOpen ? 'open' : ''}">
-        `;
-
+        const card = document.createElement('div'); card.className = 'view-card';
+        const isOpen = openAccordionIds.has(rootNode.id); const isChecked = rootNode.completed ? 'checked' : ''; const completedClass = rootNode.completed ? 'completed' : '';
+        let html = `<div class="accordion-header" onclick="toggleAccordion('${rootNode.id}')"><div class="accordion-header-title ${completedClass}"><input type="checkbox" class="node-checkbox" ${isChecked} onclick="toggleNodeComplete('${rootNode.id}', event)">📌 ${escapeHtml(rootNode.title)}</div><span class="accordion-toggle-icon">${isOpen ? '▲ 접기' : '▼ 펼치기'}</span></div><div class="accordion-body ${isOpen ? 'open' : ''}">`;
         if (rootNode.notes || rootNode.canvasData) {
           html += `<div style="padding-bottom: 8px; border-bottom: 1px dashed var(--border-color);">`;
           if (rootNode.canvasData) html += `<img src="${rootNode.canvasData}" class="view-card-img" alt="맵 드로잉" style="margin-top:0; margin-bottom: 8px;">`;
           if (rootNode.notes) html += `<div style="white-space: pre-wrap;" class="${completedClass}">${rootNode.notes}</div>`;
           html += `</div>`;
         }
-
         const children = gameNodes.filter(child => child.parentId === rootNode.id);
-        if (children.length > 0) {
-          children.forEach(child => {
-            html += renderChildViewNode(child, gameNodes);
-          });
-        }
-
-        html += `</div>`;
-        card.innerHTML = html;
-        container.appendChild(card);
+        if (children.length > 0) children.forEach(child => { html += renderChildViewNode(child, gameNodes); });
+        html += `</div>`; card.innerHTML = html; container.appendChild(card);
       });
     }
-
     function renderChildViewNode(node, allGameNodes) {
-      const isChecked = node.completed ? 'checked' : '';
-      const completedClass = node.completed ? 'completed' : '';
-
-      let html = `
-        <div class="child-view-card">
-          <div style="display:flex; align-items:center; font-weight:bold; color:#03dac6;" class="${completedClass}">
-            <input type="checkbox" class="node-checkbox" ${isChecked} onclick="toggleNodeComplete('${node.id}', event)">
-            📍 ${escapeHtml(node.title)}
-          </div>
-      `;
-
+      const isChecked = node.completed ? 'checked' : ''; const completedClass = node.completed ? 'completed' : '';
+      let html = `<div class="child-view-card"><div style="display:flex; align-items:center; font-weight:bold; color:#03dac6;" class="${completedClass}"><input type="checkbox" class="node-checkbox" ${isChecked} onclick="toggleNodeComplete('${node.id}', event)">📍 ${escapeHtml(node.title)}</div>`;
       if (node.canvasData) html += `<img src="${node.canvasData}" class="view-card-img" alt="맵 드로잉" style="margin-top: 8px; margin-bottom: 8px;">`;
       if (node.notes) html += `<div style="white-space: pre-wrap; margin-bottom: 6px;" class="${completedClass}">${node.notes}</div>`;
-
       const subChildren = allGameNodes.filter(c => c.parentId === node.id);
-      if (subChildren.length > 0) {
-        subChildren.forEach(sub => {
-          html += renderChildViewNode(sub, allGameNodes);
-        });
-      }
-
-      html += `</div>`;
-      return html;
+      if (subChildren.length > 0) subChildren.forEach(sub => { html += renderChildViewNode(sub, allGameNodes); });
+      html += `</div>`; return html;
     }
-
     function addRootNode(targetGame = currentGameTitle) {
-      if (!targetGame) {
-        addNewGamePrompt();
-        return;
-      }
-      const newNode = {
-        id: 'node_' + Date.now(),
-        gameTitle: targetGame,
-        parentId: null,
-        title: '새 챕터',
-        notes: '',
-        canvasData: null,
-        completed: false,
-        order: Date.now()
-      };
-      treeData.push(newNode);
-      saveNodeToDB(newNode);
-      updateGameDropdowns();
-      selectNode(newNode.id);
+      if (!targetGame) { addNewGamePrompt(); return; }
+      const newNode = { id: 'node_' + Date.now(), gameTitle: targetGame, parentId: null, title: '새 챕터', notes: '', canvasData: null, completed: false, order: Date.now() };
+      treeData.push(newNode); saveNodeToDB(newNode); updateGameDropdowns(); selectNode(newNode.id);
     }
-
     function addChildNode(parentId) {
       const parent = treeData.find(n => n.id === parentId);
-      const newNode = {
-        id: 'node_' + Date.now(),
-        gameTitle: currentGameTitle,
-        parentId: parentId,
-        title: `${parent.title} 하위 구역`,
-        notes: '',
-        canvasData: null,
-        completed: false,
-        order: Date.now()
-      };
-      treeData.push(newNode);
-      saveNodeToDB(newNode);
-      
-      if (collapsedTreeNodes.has(parentId)) {
-        collapsedTreeNodes.delete(parentId);
-      }
-      
+      const newNode = { id: 'node_' + Date.now(), gameTitle: currentGameTitle, parentId: parentId, title: `${parent.title} 하위 구역`, notes: '', canvasData: null, completed: false, order: Date.now() };
+      treeData.push(newNode); saveNodeToDB(newNode);
+      if (collapsedTreeNodes.has(parentId)) collapsedTreeNodes.delete(parentId);
       selectNode(newNode.id);
     }
-
     function deleteNode(id) {
       openConfirmActionModal("구역 삭제", "해당 구역과 하위 항목을 모두 삭제하시겠습니까?", function() {
         const deleteIds = [];
-        function collectChildren(targetId) {
-          deleteIds.push(targetId);
-          treeData.filter(n => n.parentId === targetId).forEach(child => collectChildren(child.id));
-        }
+        function collectChildren(targetId) { deleteIds.push(targetId); treeData.filter(n => n.parentId === targetId).forEach(child => collectChildren(child.id)); }
         collectChildren(id);
-
         treeData = treeData.filter(n => !deleteIds.includes(n.id));
-
-        const tx = db.transaction(["treeNodes"], "readwrite");
-        const store = tx.objectStore("treeNodes");
+        const tx = db.transaction(["treeNodes"], "readwrite"); const store = tx.objectStore("treeNodes");
         deleteIds.forEach(delId => store.delete(delId));
-
-        if (deleteIds.includes(activeNodeId)) {
-          activeNodeId = null;
-          document.getElementById('workspace').style.display = 'none';
-        }
-
-        updateGameDropdowns();
-        renderTree();
+        if (deleteIds.includes(activeNodeId)) { activeNodeId = null; document.getElementById('workspace').style.display = 'none'; }
+        updateGameDropdowns(); renderTree();
       });
     }
-
     function selectNode(id) {
-      if (activeNodeId === id) {
-        activeNodeId = null;
-        document.getElementById('workspace').style.display = 'none';
-        renderTree();
-        return;
-      }
-
-      activeNodeId = id;
-      renderTree();
-
-      const node = treeData.find(n => n.id === id);
-      if (!node) return;
-
+      if (activeNodeId === id) { activeNodeId = null; document.getElementById('workspace').style.display = 'none'; renderTree(); return; }
+      activeNodeId = id; renderTree();
+      const node = treeData.find(n => n.id === id); if (!node) return;
       document.getElementById('workspace').style.display = 'block';
-      document.getElementById('nodeTitleInput').value = node.title;
-      document.getElementById('currentActiveTitleText').textContent = node.title;
+      document.getElementById('nodeTitleInput').value = node.title; document.getElementById('currentActiveTitleText').textContent = node.title;
       document.getElementById('nodeNotesInput').innerHTML = node.notes || '';
-
       drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
       stickers = node.stickers ? JSON.parse(JSON.stringify(node.stickers)) : [];
-      bgImageObj = null;
-      bgScale = node.bgScale || 1.0;
-      bgX = node.bgX || 0;
-      bgY = node.bgY || 0;
-      undoStack = [];
-      selectedTarget = null;
-
+      bgImageObj = null; bgScale = node.bgScale || 1.0; bgX = node.bgX || 0; bgY = node.bgY || 0;
+      undoStack = []; selectedTarget = null;
       const mapContainer = document.getElementById('mapDrawingContainer');
       if (node.canvasData) {
         mapContainer.style.display = 'block';
-
         if (node.drawingData) {
           const dImg = new Image();
           dImg.onload = function() {
             drawingCtx.drawImage(dImg, 0, 0);
-            if (node.bgImageData) {
-              const bImg = new Image();
-              bImg.onload = function() {
-                bgImageObj = bImg;
-                renderMainCanvas();
-                pushUndoState();
-              };
-              bImg.src = node.bgImageData;
-            } else {
-              renderMainCanvas();
-              pushUndoState();
-            }
-          };
-          dImg.src = node.drawingData;
+            if (node.bgImageData) { const bImg = new Image(); bImg.onload = function() { bgImageObj = bImg; renderMainCanvas(); pushUndoState(); }; bImg.src = node.bgImageData; }
+            else { renderMainCanvas(); pushUndoState(); }
+          }; dImg.src = node.drawingData;
         } else {
-          const img = new Image();
-          img.onload = function() {
-            drawingCtx.drawImage(img, 0, 0);
-            renderMainCanvas();
-            pushUndoState();
-          };
-          img.src = node.canvasData;
+          const img = new Image(); img.onload = function() { drawingCtx.drawImage(img, 0, 0); renderMainCanvas(); pushUndoState(); }; img.src = node.canvasData;
         }
-      } else {
-        mapContainer.style.display = 'none';
-      }
-
+      } else mapContainer.style.display = 'none';
       selectPointerTool();
-      
-      setTimeout(() => {
-        const noteLabel = document.getElementById('noteSectionLabel');
-        if (noteLabel) {
-          noteLabel.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 100);
+      setTimeout(() => { const noteLabel = document.getElementById('noteSectionLabel'); if (noteLabel) noteLabel.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
     }
-
     function scrollToTreeAndCollapse() {
-      const currentActiveId = activeNodeId;
-      activeNodeId = null;
-      document.getElementById('workspace').style.display = 'none';
-      
-      if (currentActiveId && !collapsedTreeNodes.has(currentActiveId)) {
-          collapsedTreeNodes.add(currentActiveId);
-      }
-      
+      const currentActiveId = activeNodeId; activeNodeId = null; document.getElementById('workspace').style.display = 'none';
+      if (currentActiveId && !collapsedTreeNodes.has(currentActiveId)) collapsedTreeNodes.add(currentActiveId);
       renderTree();
-
-      if (currentActiveId) {
-        const nodeEl = document.getElementById(`ui-node-${currentActiveId}`);
-        if (nodeEl) {
-          nodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          return;
-        }
-      }
-
-      const treeSec = document.getElementById('treeSection');
-      if (treeSec) {
-        treeSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      if (currentActiveId) { const nodeEl = document.getElementById(`ui-node-${currentActiveId}`); if (nodeEl) { nodeEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); return; } }
+      const treeSec = document.getElementById('treeSection'); if (treeSec) treeSec.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-
     function updateCurrentNodeTitle() {
-      if (!activeNodeId) return;
-      const title = document.getElementById('nodeTitleInput').value;
+      if (!activeNodeId) return; const title = document.getElementById('nodeTitleInput').value;
       const node = treeData.find(n => n.id === activeNodeId);
-      if (node) {
-        node.title = title;
-        document.getElementById('currentActiveTitleText').textContent = title;
-        renderTree();
-      }
+      if (node) { node.title = title; document.getElementById('currentActiveTitleText').textContent = title; renderTree(); }
     }
-    
     function setNoteColor(color, btnEl, fromBlur = false) {
-      currentNoteColor = color;
-      
-      document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected-color'));
+      currentNoteColor = color; document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('selected-color'));
       if (btnEl) btnEl.classList.add('selected-color');
-      
-      if (!fromBlur) {
-        const notesArea = document.getElementById('nodeNotesInput');
-        notesArea.focus();
-        try {
-          document.execCommand('styleWithCSS', false, true);
-          document.execCommand('foreColor', false, color);
-        } catch(e) {}
-      }
+      if (!fromBlur) { const notesArea = document.getElementById('nodeNotesInput'); notesArea.focus(); try { document.execCommand('styleWithCSS', false, true); document.execCommand('foreColor', false, color); } catch(e) {} }
     }
-    
-    function resetNoteColor() {
-      const whiteBtn = document.getElementById('colorBtnWhite');
-      setNoteColor('#F5F5F5', whiteBtn, true);
-    }
-
-    function applyCurrentNoteColor() {
-      setTimeout(() => {
-        const sel = window.getSelection();
-        if (sel && sel.isCollapsed) {
-          try {
-            document.execCommand('styleWithCSS', false, true);
-            document.execCommand('foreColor', false, currentNoteColor);
-          } catch(e) {}
-        }
-      }, 50);
-    }
-
-    function addTag(event, tagText) {
-      if (event) event.preventDefault();
-      if (!activeNodeId) return;
-      
-      const notesArea = document.getElementById('nodeNotesInput');
-      notesArea.focus();
-      
-      let htmlToInsert = `<span style="color:${currentNoteColor};">${escapeHtml(tagText)}</span>&nbsp;`;
-      document.execCommand('insertHTML', false, htmlToInsert);
-      
-      saveActiveNodeData();
-      notesArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
-    function addDirection(event, dirArrow) {
-      if (event) event.preventDefault();
-      if (!activeNodeId) return;
-      
-      const notesArea = document.getElementById('nodeNotesInput');
-      notesArea.focus();
-      
-      let htmlToInsert = `<span style="color:${currentNoteColor};">${dirArrow}</span>&nbsp;`;
-      document.execCommand('insertHTML', false, htmlToInsert);
-      
-      saveActiveNodeData();
-      notesArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }
-
+    function resetNoteColor() { const whiteBtn = document.getElementById('colorBtnWhite'); setNoteColor('#F5F5F5', whiteBtn, true); }
+    function applyCurrentNoteColor() { setTimeout(() => { const sel = window.getSelection(); if (sel && sel.isCollapsed) { try { document.execCommand('styleWithCSS', false, true); document.execCommand('foreColor', false, currentNoteColor); } catch(e) {} } }, 50); }
+    function addTag(event, tagText) { if (event) event.preventDefault(); if (!activeNodeId) return; const notesArea = document.getElementById('nodeNotesInput'); notesArea.focus(); let htmlToInsert = `<span style="color:${currentNoteColor};">${escapeHtml(tagText)}</span>&nbsp;`; document.execCommand('insertHTML', false, htmlToInsert); saveActiveNodeData(); notesArea.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+    function addDirection(event, dirArrow) { if (event) event.preventDefault(); if (!activeNodeId) return; const notesArea = document.getElementById('nodeNotesInput'); notesArea.focus(); let htmlToInsert = `<span style="color:${currentNoteColor};">${dirArrow}</span>&nbsp;`; document.execCommand('insertHTML', false, htmlToInsert); saveActiveNodeData(); notesArea.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
     function renderMainCanvas() {
       mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
-
       if (bgImageObj && bgImageObj.complete) {
-        const w = mainCanvas.width * bgScale;
-        const h = mainCanvas.height * bgScale;
-        mainCtx.drawImage(bgImageObj, bgX, bgY, w, h);
-
-        if (selectedTarget && selectedTarget.type === 'bg') {
-          mainCtx.save();
-          mainCtx.strokeStyle = '#bb86fc';
-          mainCtx.lineWidth = 2;
-          mainCtx.setLineDash([6, 6]);
-          mainCtx.strokeRect(bgX, bgY, w, h);
-          mainCtx.restore();
-        }
-      } else {
-        mainCtx.fillStyle = '#262626';
-        mainCtx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
-      }
-
+        const w = mainCanvas.width * bgScale; const h = mainCanvas.height * bgScale; mainCtx.drawImage(bgImageObj, bgX, bgY, w, h);
+        if (selectedTarget && selectedTarget.type === 'bg') { mainCtx.save(); mainCtx.strokeStyle = '#bb86fc'; mainCtx.lineWidth = 2; mainCtx.setLineDash([6, 6]); mainCtx.strokeRect(bgX, bgY, w, h); mainCtx.restore(); }
+      } else { mainCtx.fillStyle = '#262626'; mainCtx.fillRect(0, 0, mainCanvas.width, mainCanvas.height); }
       mainCtx.drawImage(drawingCanvas, 0, 0);
-
       stickers.forEach((s, idx) => {
-        const scale = s.scale || 1.0;
-        const fontSize = Math.round(28 * scale);
-        mainCtx.font = `${fontSize}px sans-serif`;
-        mainCtx.textAlign = 'center';
-        mainCtx.textBaseline = 'middle';
-        mainCtx.fillText(s.emoji, s.x, s.y);
-
-        if (selectedTarget && selectedTarget.type === 'sticker' && selectedTarget.index === idx) {
-          mainCtx.save();
-          mainCtx.strokeStyle = '#03dac6';
-          mainCtx.lineWidth = 2;
-          mainCtx.setLineDash([4, 4]);
-          const boxSize = fontSize + 10;
-          mainCtx.strokeRect(s.x - boxSize/2, s.y - boxSize/2, boxSize, boxSize);
-          mainCtx.restore();
-        }
+        const scale = s.scale || 1.0; const fontSize = Math.round(28 * scale); mainCtx.font = `${fontSize}px sans-serif`; mainCtx.textAlign = 'center'; mainCtx.textBaseline = 'middle'; mainCtx.fillText(s.emoji, s.x, s.y);
+        if (selectedTarget && selectedTarget.type === 'sticker' && selectedTarget.index === idx) { mainCtx.save(); mainCtx.strokeStyle = '#03dac6'; mainCtx.lineWidth = 2; mainCtx.setLineDash([4, 4]); const boxSize = fontSize + 10; mainCtx.strokeRect(s.x - boxSize/2, s.y - boxSize/2, boxSize, boxSize); mainCtx.restore(); }
       });
     }
-
     function pushUndoState() {
-      const drawingData = drawingCtx.getImageData(0, 0, 500, 400);
-      const stickerData = JSON.parse(JSON.stringify(stickers));
-      const bgData = bgImageObj ? bgImageObj.src : null;
-
-      undoStack.push({
-        drawingData: drawingData,
-        stickers: stickerData,
-        bgData: bgData,
-        bgScale: bgScale,
-        bgX: bgX,
-        bgY: bgY
-      });
-
-      if (undoStack.length > 25) {
-        undoStack.shift();
-      }
+      const drawingData = drawingCtx.getImageData(0, 0, 500, 400); const stickerData = JSON.parse(JSON.stringify(stickers)); const bgData = bgImageObj ? bgImageObj.src : null;
+      undoStack.push({ drawingData: drawingData, stickers: stickerData, bgData: bgData, bgScale: bgScale, bgX: bgX, bgY: bgY });
+      if (undoStack.length > 25) undoStack.shift();
     }
-
     function undoCanvas() {
       if (undoStack.length > 1) {
-        undoStack.pop();
-        const prevState = undoStack[undoStack.length - 1];
-
-        drawingCtx.putImageData(prevState.drawingData, 0, 0);
-        stickers = JSON.parse(JSON.stringify(prevState.stickers));
-        bgScale = prevState.bgScale || 1.0;
-        bgX = prevState.bgX || 0;
-        bgY = prevState.bgY || 0;
-        selectedTarget = null;
-
-        if (prevState.bgData) {
-          const img = new Image();
-          img.onload = function() {
-            bgImageObj = img;
-            renderMainCanvas();
-            saveActiveNodeData();
-          };
-          img.src = prevState.bgData;
-        } else {
-          bgImageObj = null;
-          renderMainCanvas();
-          saveActiveNodeData();
-        }
+        undoStack.pop(); const prevState = undoStack[undoStack.length - 1]; drawingCtx.putImageData(prevState.drawingData, 0, 0); stickers = JSON.parse(JSON.stringify(prevState.stickers)); bgScale = prevState.bgScale || 1.0; bgX = prevState.bgX || 0; bgY = prevState.bgY || 0; selectedTarget = null;
+        if (prevState.bgData) { const img = new Image(); img.onload = function() { bgImageObj = img; renderMainCanvas(); saveActiveNodeData(); }; img.src = prevState.bgData; }
+        else { bgImageObj = null; renderMainCanvas(); saveActiveNodeData(); }
       }
     }
-
-    function clearCanvas() {
-      drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-      stickers = [];
-      bgImageObj = null;
-      bgScale = 1.0;
-      bgX = 0;
-      bgY = 0;
-      selectedTarget = null;
-      document.getElementById('mapImageInput').value = '';
-      renderMainCanvas();
-    }
-
-    function clearDrawingsAndStickers() {
-      drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height);
-      stickers = [];
-      selectedTarget = null;
-      renderMainCanvas();
-      pushUndoState();
-      saveActiveNodeData();
-    }
-
+    function clearCanvas() { drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height); stickers = []; bgImageObj = null; bgScale = 1.0; bgX = 0; bgY = 0; selectedTarget = null; document.getElementById('mapImageInput').value = ''; renderMainCanvas(); }
+    function clearDrawingsAndStickers() { drawingCtx.clearRect(0, 0, drawingCanvas.width, drawingCanvas.height); stickers = []; selectedTarget = null; renderMainCanvas(); pushUndoState(); saveActiveNodeData(); }
     function resetMapAndCanvas() {
-      clearCanvas();
-      document.getElementById('mapDrawingContainer').style.display = 'none';
-      if (activeNodeId) {
-        const node = treeData.find(n => n.id === activeNodeId);
-        if (node) {
-          node.canvasData = null;
-          node.bgImageData = null;
-          node.drawingData = null;
-          node.stickers = [];
-          node.bgScale = 1.0;
-          node.bgX = 0;
-          node.bgY = 0;
-          saveNodeToDB(node);
-        }
-      }
+      clearCanvas(); document.getElementById('mapDrawingContainer').style.display = 'none';
+      if (activeNodeId) { const node = treeData.find(n => n.id === activeNodeId); if (node) { node.canvasData = null; node.bgImageData = null; node.drawingData = null; node.stickers = []; node.bgScale = 1.0; node.bgX = 0; node.bgY = 0; saveNodeToDB(node); } }
       pushUndoState();
     }
-
-    function getCanvasCoords(e) {
-      const rect = mainCanvas.getBoundingClientRect();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      return {
-        x: (clientX - rect.left) * (mainCanvas.width / rect.width),
-        y: (clientY - rect.top) * (mainCanvas.height / rect.height)
-      };
-    }
-
-    function selectPointerTool() {
-      currentTool = 'pointer';
-      selectedTarget = null;
-      document.getElementById('pointerBtn').classList.add('active');
-      document.getElementById('penBtn').classList.remove('active');
-      document.getElementById('eraserBtn').classList.remove('active');
-      document.querySelectorAll('.btn-sticker').forEach(b => b.classList.remove('active'));
-      renderMainCanvas();
-    }
-
-    function selectPenTool() {
-      currentTool = 'pen';
-      selectedTarget = null;
-      document.getElementById('penBtn').classList.add('active');
-      document.getElementById('pointerBtn').classList.remove('active');
-      document.getElementById('eraserBtn').classList.remove('active');
-      document.querySelectorAll('.btn-sticker').forEach(b => b.classList.remove('active'));
-      renderMainCanvas();
-    }
-
-    function setColor(color) {
-      currentColor = color;
-      selectPenTool();
-    }
-
-    function toggleEraser() {
-      currentTool = 'eraser';
-      selectedTarget = null;
-      document.getElementById('eraserBtn').classList.add('active');
-      document.getElementById('pointerBtn').classList.remove('active');
-      document.getElementById('penBtn').classList.remove('active');
-      document.querySelectorAll('.btn-sticker').forEach(b => b.classList.remove('active'));
-      renderMainCanvas();
-    }
-
-    function selectStickerTool(sticker, btn) {
-      currentTool = 'sticker';
-      selectedSticker = sticker;
-      selectedTarget = null;
-      document.getElementById('pointerBtn').classList.remove('active');
-      document.getElementById('penBtn').classList.remove('active');
-      document.getElementById('eraserBtn').classList.remove('active');
-      document.querySelectorAll('.btn-sticker').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      renderMainCanvas();
-    }
-
-    function findStickerAt(x, y) {
-      for (let i = stickers.length - 1; i >= 0; i--) {
-        const s = stickers[i];
-        const scale = s.scale || 1.0;
-        const hitRadius = (28 * scale) / 2 + 10;
-        const dist = Math.hypot(s.x - x, s.y - y);
-        if (dist <= hitRadius) {
-          return i;
-        }
-      }
-      return -1;
-    }
-
-    function isInsideBgImage(x, y) {
-      if (!bgImageObj) return false;
-      const w = mainCanvas.width * bgScale;
-      const h = mainCanvas.height * bgScale;
-      return x >= bgX && x <= bgX + w && y >= bgY && y <= bgY + h;
-    }
-
-    function cycleStickerScale(stickerIdx) {
-      if (stickerIdx < 0 || stickerIdx >= stickers.length) return;
-      const s = stickers[stickerIdx];
-      const currentScale = s.scale || 1.0;
-
-      if (currentScale < 1.45) {
-        s.scale = 1.5;
-      } else if (currentScale < 1.95) {
-        s.scale = 2.0;
-      } else if (currentScale < 2.45) {
-        s.scale = 2.5;
-      } else {
-        s.scale = 1.0;
-      }
-
-      selectedTarget = { type: 'sticker', index: stickerIdx };
-      renderMainCanvas();
-      pushUndoState();
-      saveActiveNodeData();
-    }
-
+    function getCanvasCoords(e) { const rect = mainCanvas.getBoundingClientRect(); const clientX = e.touches ? e.touches[0].clientX : e.clientX; const clientY = e.touches ? e.touches[0].clientY : e.clientY; return { x: (clientX - rect.left) * (mainCanvas.width / rect.width), y: (clientY - rect.top) * (mainCanvas.height / rect.height) }; }
+    function selectPointerTool() { currentTool = 'pointer'; selectedTarget = null; document.getElementById('pointerBtn').classList.add('active'); document.getElementById('penBtn').classList.remove('active'); document.getElementById('eraserBtn').classList.remove('active'); document.querySelectorAll('.btn-sticker').forEach(b => b.classList.remove('active')); renderMainCanvas(); }
+    function selectPenTool() { currentTool = 'pen'; selectedTarget = null; document.getElementById('penBtn').classList.add('active'); document.getElementById('pointerBtn').classList.remove('active'); document.getElementById('eraserBtn').classList.remove('active'); document.querySelectorAll('.btn-sticker').forEach(b => b.classList.remove('active')); renderMainCanvas(); }
+    function setColor(color) { currentColor = color; selectPenTool(); }
+    function toggleEraser() { currentTool = 'eraser'; selectedTarget = null; document.getElementById('eraserBtn').classList.add('active'); document.getElementById('pointerBtn').classList.remove('active'); document.getElementById('penBtn').classList.remove('active'); document.querySelectorAll('.btn-sticker').forEach(b => b.classList.remove('active')); renderMainCanvas(); }
+    function selectStickerTool(sticker, btn) { currentTool = 'sticker'; selectedSticker = sticker; selectedTarget = null; document.getElementById('pointerBtn').classList.remove('active'); document.getElementById('penBtn').classList.remove('active'); document.getElementById('eraserBtn').classList.remove('active'); document.querySelectorAll('.btn-sticker').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderMainCanvas(); }
+    function findStickerAt(x, y) { for (let i = stickers.length - 1; i >= 0; i--) { const s = stickers[i]; const scale = s.scale || 1.0; const hitRadius = (28 * scale) / 2 + 10; const dist = Math.hypot(s.x - x, s.y - y); if (dist <= hitRadius) return i; } return -1; }
+    function isInsideBgImage(x, y) { if (!bgImageObj) return false; const w = mainCanvas.width * bgScale; const h = mainCanvas.height * bgScale; return x >= bgX && x <= bgX + w && y >= bgY && y <= bgY + h; }
+    function cycleStickerScale(stickerIdx) { if (stickerIdx < 0 || stickerIdx >= stickers.length) return; const s = stickers[stickerIdx]; const currentScale = s.scale || 1.0; if (currentScale < 1.45) s.scale = 1.5; else if (currentScale < 1.95) s.scale = 2.0; else if (currentScale < 2.45) s.scale = 2.5; else s.scale = 1.0; selectedTarget = { type: 'sticker', index: stickerIdx }; renderMainCanvas(); pushUndoState(); saveActiveNodeData(); }
     function startDrawing(e) {
-      const noteInput = document.getElementById('nodeNotesInput');
-      if (document.activeElement === noteInput) {
-          noteInput.blur();
-          window.getSelection().removeAllRanges();
-      }
-
+      const noteInput = document.getElementById('nodeNotesInput'); if (document.activeElement === noteInput) { noteInput.blur(); window.getSelection().removeAllRanges(); }
       const pos = getCanvasCoords(e);
-
-      if (e.touches && e.touches.length === 2) {
-        initialPinchDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        if (selectedTarget) {
-          if (selectedTarget.type === 'sticker') {
-            initialScale = stickers[selectedTarget.index].scale || 1.0;
-          } else if (selectedTarget.type === 'bg') {
-            initialScale = bgScale;
-          }
-        }
-        return;
-      }
-
-      const now = Date.now();
-      const timeDiff = now - lastTapTime;
-      const distFromLast = Math.hypot(pos.x - lastTapPos.x, pos.y - lastTapPos.y);
-
-      lastTapTime = now;
-      lastTapPos = pos;
-
+      if (e.touches && e.touches.length === 2) { initialPinchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); if (selectedTarget) { if (selectedTarget.type === 'sticker') initialScale = stickers[selectedTarget.index].scale || 1.0; else if (selectedTarget.type === 'bg') initialScale = bgScale; } return; }
+      const now = Date.now(); const timeDiff = now - lastTapTime; const distFromLast = Math.hypot(pos.x - lastTapPos.x, pos.y - lastTapPos.y); lastTapTime = now; lastTapPos = pos;
       const stickerIdx = findStickerAt(pos.x, pos.y);
-
-      if (timeDiff < 350 && distFromLast < 35 && stickerIdx !== -1) {
-        cycleStickerScale(stickerIdx);
-        isDragging = false;
-        return;
-      }
-
+      if (timeDiff < 350 && distFromLast < 35 && stickerIdx !== -1) { cycleStickerScale(stickerIdx); isDragging = false; return; }
       if (currentTool === 'pointer') {
-        if (stickerIdx !== -1) {
-          wasAlreadySelected = (selectedTarget && selectedTarget.type === 'sticker' && selectedTarget.index === stickerIdx);
-          selectedTarget = { type: 'sticker', index: stickerIdx };
-          isDragging = true;
-          hasDragged = false;
-          dragStartPos = pos;
-          initialTargetPos = { x: stickers[stickerIdx].x, y: stickers[stickerIdx].y };
-        } else if (isInsideBgImage(pos.x, pos.y)) {
-          wasAlreadySelected = (selectedTarget && selectedTarget.type === 'bg');
-          selectedTarget = { type: 'bg' };
-          isDragging = true;
-          hasDragged = false;
-          dragStartPos = pos;
-          initialTargetPos = { x: bgX, y: bgY };
-        } else {
-          selectedTarget = null;
-          isDragging = false;
-          hasDragged = false;
-          wasAlreadySelected = false;
-        }
-        renderMainCanvas();
-        return;
+        if (stickerIdx !== -1) { wasAlreadySelected = (selectedTarget && selectedTarget.type === 'sticker' && selectedTarget.index === stickerIdx); selectedTarget = { type: 'sticker', index: stickerIdx }; isDragging = true; hasDragged = false; dragStartPos = pos; initialTargetPos = { x: stickers[stickerIdx].x, y: stickers[stickerIdx].y }; }
+        else if (isInsideBgImage(pos.x, pos.y)) { wasAlreadySelected = (selectedTarget && selectedTarget.type === 'bg'); selectedTarget = { type: 'bg' }; isDragging = true; hasDragged = false; dragStartPos = pos; initialTargetPos = { x: bgX, y: bgY }; }
+        else { selectedTarget = null; isDragging = false; hasDragged = false; wasAlreadySelected = false; }
+        renderMainCanvas(); return;
       }
-
-      if (currentTool === 'sticker' && selectedSticker) {
-        stickers.push({
-          id: 'stk_' + Date.now(),
-          emoji: selectedSticker,
-          x: pos.x,
-          y: pos.y,
-          scale: 1.0
-        });
-
-        selectedTarget = { type: 'sticker', index: stickers.length - 1 };
-        selectedSticker = '';
-        selectPointerTool();
-
-        renderMainCanvas();
-        pushUndoState();
-        saveActiveNodeData();
-        return;
-      }
-
-      if (currentTool === 'pen' || currentTool === 'eraser') {
-        isDrawing = true;
-        drawingCtx.beginPath();
-        drawingCtx.moveTo(pos.x, pos.y);
-      }
+      if (currentTool === 'sticker' && selectedSticker) { stickers.push({ id: 'stk_' + Date.now(), emoji: selectedSticker, x: pos.x, y: pos.y, scale: 1.0 }); selectedTarget = { type: 'sticker', index: stickers.length - 1 }; selectedSticker = ''; selectPointerTool(); renderMainCanvas(); pushUndoState(); saveActiveNodeData(); return; }
+      if (currentTool === 'pen' || currentTool === 'eraser') { isDrawing = true; drawingCtx.beginPath(); drawingCtx.moveTo(pos.x, pos.y); }
     }
-
     function draw(e) {
       const pos = getCanvasCoords(e);
-
       if (e.touches && e.touches.length === 2 && selectedTarget && initialPinchDist > 0) {
-        const currentDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        const factor = currentDist / initialPinchDist;
-
-        if (selectedTarget.type === 'sticker') {
-          const s = stickers[selectedTarget.index];
-          s.scale = Math.max(0.3, Math.min(5.0, initialScale * factor));
-        } else if (selectedTarget.type === 'bg') {
-          bgScale = Math.max(0.2, Math.min(5.0, initialScale * factor));
-        }
-        renderMainCanvas();
-        return;
+        const currentDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY); const factor = currentDist / initialPinchDist;
+        if (selectedTarget.type === 'sticker') { const s = stickers[selectedTarget.index]; s.scale = Math.max(0.3, Math.min(5.0, initialScale * factor)); } else if (selectedTarget.type === 'bg') bgScale = Math.max(0.2, Math.min(5.0, initialScale * factor));
+        renderMainCanvas(); return;
       }
-
       if (isDragging && selectedTarget) {
-        const dx = pos.x - dragStartPos.x;
-        const dy = pos.y - dragStartPos.y;
-
-        if (Math.hypot(dx, dy) > 3) {
-          hasDragged = true;
-        }
-
-        if (selectedTarget.type === 'sticker') {
-          stickers[selectedTarget.index].x = initialTargetPos.x + dx;
-          stickers[selectedTarget.index].y = initialTargetPos.y + dy;
-        } else if (selectedTarget.type === 'bg') {
-          bgX = initialTargetPos.x + dx;
-          bgY = initialTargetPos.y + dy;
-        }
-        renderMainCanvas();
-        return;
+        const dx = pos.x - dragStartPos.x; const dy = pos.y - dragStartPos.y; if (Math.hypot(dx, dy) > 3) hasDragged = true;
+        if (selectedTarget.type === 'sticker') { stickers[selectedTarget.index].x = initialTargetPos.x + dx; stickers[selectedTarget.index].y = initialTargetPos.y + dy; } else if (selectedTarget.type === 'bg') { bgX = initialTargetPos.x + dx; bgY = initialTargetPos.y + dy; }
+        renderMainCanvas(); return;
       }
-
       if (!isDrawing) return;
-
-      drawingCtx.lineWidth = (currentTool === 'eraser') ? 22 : 4;
-      drawingCtx.lineCap = 'round';
-
-      if (currentTool === 'eraser') {
-        drawingCtx.globalCompositeOperation = 'destination-out';
-      } else {
-        drawingCtx.globalCompositeOperation = 'source-over';
-        drawingCtx.strokeStyle = currentColor;
-      }
-
-      drawingCtx.lineTo(pos.x, pos.y);
-      drawingCtx.stroke();
-
-      renderMainCanvas();
+      drawingCtx.lineWidth = (currentTool === 'eraser') ? 22 : 4; drawingCtx.lineCap = 'round';
+      if (currentTool === 'eraser') drawingCtx.globalCompositeOperation = 'destination-out'; else { drawingCtx.globalCompositeOperation = 'source-over'; drawingCtx.strokeStyle = currentColor; }
+      drawingCtx.lineTo(pos.x, pos.y); drawingCtx.stroke(); renderMainCanvas();
     }
-
     function stopDrawing() {
-      if (isDragging) {
-        if (!hasDragged && wasAlreadySelected) {
-          selectedTarget = null;
-          renderMainCanvas();
-        }
-        isDragging = false;
-        hasDragged = false;
-        wasAlreadySelected = false;
-        pushUndoState();
-        saveActiveNodeData();
-        return;
-      }
-
-      if (isDrawing) {
-        isDrawing = false;
-        pushUndoState();
-        saveActiveNodeData();
-      }
-
-      initialPinchDist = 0;
+      if (isDragging) { if (!hasDragged && wasAlreadySelected) { selectedTarget = null; renderMainCanvas(); } isDragging = false; hasDragged = false; wasAlreadySelected = false; pushUndoState(); saveActiveNodeData(); return; }
+      if (isDrawing) { isDrawing = false; pushUndoState(); saveActiveNodeData(); } initialPinchDist = 0;
     }
-
-    mainCanvas.addEventListener('wheel', (e) => {
-      if (currentTool === 'pointer' && selectedTarget) {
-        e.preventDefault();
-        const delta = e.deltaY < 0 ? 0.1 : -0.1;
-
-        if (selectedTarget.type === 'sticker') {
-          const s = stickers[selectedTarget.index];
-          s.scale = Math.max(0.3, Math.min(5.0, (s.scale || 1.0) + delta));
-        } else if (selectedTarget.type === 'bg') {
-          bgScale = Math.max(0.2, Math.min(5.0, bgScale + delta));
-        }
-        renderMainCanvas();
-        pushUndoState();
-        saveActiveNodeData();
-      }
-    }, { passive: false });
-
-    mainCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); });
-    mainCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); });
-    mainCanvas.addEventListener('touchend', stopDrawing);
-
-    mainCanvas.addEventListener('mousedown', startDrawing);
-    mainCanvas.addEventListener('mousemove', draw);
-    mainCanvas.addEventListener('mouseup', stopDrawing);
-
-    function loadMapImage(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function(event) {
-        const img = new Image();
-        img.onload = function() {
-          clearCanvas();
-          bgImageObj = img;
-          bgScale = 1.0;
-          bgX = 0;
-          bgY = 0;
-          selectedTarget = { type: 'bg' };
-          selectPointerTool();
-          renderMainCanvas();
-          pushUndoState();
-          saveActiveNodeData();
-        };
-        img.src = event.target.result;
-      };
-      reader.readAsDataURL(file);
-    }
-
+    mainCanvas.addEventListener('wheel', (e) => { if (currentTool === 'pointer' && selectedTarget) { e.preventDefault(); const delta = e.deltaY < 0 ? 0.1 : -0.1; if (selectedTarget.type === 'sticker') { const s = stickers[selectedTarget.index]; s.scale = Math.max(0.3, Math.min(5.0, (s.scale || 1.0) + delta)); } else if (selectedTarget.type === 'bg') bgScale = Math.max(0.2, Math.min(5.0, bgScale + delta)); renderMainCanvas(); pushUndoState(); saveActiveNodeData(); } }, { passive: false });
+    mainCanvas.addEventListener('touchstart', (e) => { e.preventDefault(); startDrawing(e); }); mainCanvas.addEventListener('touchmove', (e) => { e.preventDefault(); draw(e); }); mainCanvas.addEventListener('touchend', stopDrawing);
+    mainCanvas.addEventListener('mousedown', startDrawing); mainCanvas.addEventListener('mousemove', draw); mainCanvas.addEventListener('mouseup', stopDrawing);
+    function loadMapImage(e) { const file = e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(event) { const img = new Image(); img.onload = function() { clearCanvas(); bgImageObj = img; bgScale = 1.0; bgX = 0; bgY = 0; selectedTarget = { type: 'bg' }; selectPointerTool(); renderMainCanvas(); pushUndoState(); saveActiveNodeData(); }; img.src = event.target.result; }; reader.readAsDataURL(file); }
+    
+    // 파일명 저장 시 GameDiary 로 통일 적용
     function saveActiveNodeData() {
-      if (!activeNodeId) return;
-
-      const node = treeData.find(n => n.id === activeNodeId);
+      if (!activeNodeId) return; const node = treeData.find(n => n.id === activeNodeId);
       if (node) {
-        node.title = document.getElementById('nodeTitleInput').value;
-        node.notes = document.getElementById('nodeNotesInput').innerHTML;
-        
+        node.title = document.getElementById('nodeTitleInput').value; node.notes = document.getElementById('nodeNotesInput').innerHTML;
         const mapContainer = document.getElementById('mapDrawingContainer');
-        if (mapContainer.style.display !== 'none') {
-          node.canvasData = mainCanvas.toDataURL();
-          node.bgImageData = bgImageObj ? bgImageObj.src : null;
-          node.drawingData = drawingCanvas.toDataURL();
-          node.stickers = stickers;
-          node.bgScale = bgScale;
-          node.bgX = bgX;
-          node.bgY = bgY;
-        }
-
-        saveNodeToDB(node);
-        renderTree();
+        if (mapContainer.style.display !== 'none') { node.canvasData = mainCanvas.toDataURL(); node.bgImageData = bgImageObj ? bgImageObj.src : null; node.drawingData = drawingCanvas.toDataURL(); node.stickers = stickers; node.bgScale = bgScale; node.bgX = bgX; node.bgY = bgY; }
+        saveNodeToDB(node); renderTree();
       }
     }
-
-    function saveNodeToDB(node) {
-      const tx = db.transaction(["treeNodes"], "readwrite");
-      const store = tx.objectStore("treeNodes");
-      store.put(node);
-    }
-
+    function saveNodeToDB(node) { const tx = db.transaction(["treeNodes"], "readwrite"); const store = tx.objectStore("treeNodes"); store.put(node); }
+    
+    // 파일 내보내기 시 GameDiary 명칭 적용
     function exportData() {
-      saveActiveNodeData();
-      const jsonData = JSON.stringify(treeData, null, 2);
-
-      const now = new Date();
-      const timestamp = now.getFullYear() +
-        String(now.getMonth() + 1).padStart(2, '0') +
-        String(now.getDate()).padStart(2, '0') + '_' +
-        String(now.getHours()).padStart(2, '0') +
-        String(now.getMinutes()).padStart(2, '0') +
-        String(now.getSeconds()).padStart(2, '0');
-
-      const defaultFilename = currentGameTitle 
-        ? `GameCheck_${currentGameTitle}_${timestamp}.json` 
-        : `gamediary_${timestamp}.json`;
-
-      const blob = new Blob([jsonData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-
-      const downloadAnchor = document.createElement('a');
-      downloadAnchor.setAttribute("href", url);
-      downloadAnchor.setAttribute("download", defaultFilename);
-      document.body.appendChild(downloadAnchor);
-      downloadAnchor.click();
-      downloadAnchor.remove();
-
-      URL.revokeObjectURL(url);
+      saveActiveNodeData(); const jsonData = JSON.stringify(treeData, null, 2);
+      const now = new Date(); const timestamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '_' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
+      const defaultFilename = currentGameTitle ? `GameDiary_${currentGameTitle}_${timestamp}.json` : `GameDiary_${timestamp}.json`;
+      const blob = new Blob([jsonData], { type: 'application/json' }); const url = URL.createObjectURL(blob);
+      const downloadAnchor = document.createElement('a'); downloadAnchor.setAttribute("href", url); downloadAnchor.setAttribute("download", defaultFilename); document.body.appendChild(downloadAnchor); downloadAnchor.click(); downloadAnchor.remove(); URL.revokeObjectURL(url);
     }
-
+    
     function importData(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
+      const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
       reader.onload = function(event) {
         try {
           const importedData = JSON.parse(event.target.result);
           if (Array.isArray(importedData)) {
-            const tx = db.transaction(["treeNodes"], "readwrite");
-            const store = tx.objectStore("treeNodes");
-            store.clear();
-
-            importedData.forEach(node => store.put(node));
-            treeData = importedData;
-            sanitizeData();
-
-            const games = getGameList();
-            if (games.length > 0) currentGameTitle = games[0];
-            updateGameDropdowns();
-            renderTree();
-            renderViewMode();
-            closeStartModal();
+            const tx = db.transaction(["treeNodes"], "readwrite"); const store = tx.objectStore("treeNodes"); store.clear();
+            importedData.forEach(node => store.put(node)); treeData = importedData; sanitizeData();
+            const games = getGameList(); if (games.length > 0) currentGameTitle = games[0];
+            updateGameDropdowns(); renderTree(); renderViewMode(); closeStartModal();
           }
-        } catch (err) {
-          openConfirmActionModal("오류", "유효하지 않은 파일입니다.", null);
-        }
-      };
-      reader.readAsText(file);
-      e.target.value = '';
+        } catch (err) { openConfirmActionModal("오류", "유효하지 않은 파일입니다.", null); }
+      }; reader.readAsText(file); e.target.value = '';
     }
-
-    function escapeHtml(text) {
-      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-
-    function blurEditorIfTappedOutside(e) {
-      const noteInput = document.getElementById('nodeNotesInput');
-      const colorBtns = document.getElementById('noteColorBtns');
-      const stickyBar = document.getElementById('stickyQuickBar');
-      
-      if (noteInput && document.activeElement === noteInput) {
-          if (!noteInput.contains(e.target) && 
-              (!colorBtns || !colorBtns.contains(e.target)) && 
-              (!stickyBar || !stickyBar.contains(e.target))) {
-              noteInput.blur();
-              window.getSelection().removeAllRanges();
-          }
-      }
-    }
-    document.addEventListener('touchstart', blurEditorIfTappedOutside, true);
-    document.addEventListener('mousedown', blurEditorIfTappedOutside, true);
-
-    // ==========================================
-    // 카운터 및 스톱워치 시스템 (+ 랩타임 정렬/편집)
-    // ==========================================
+    function escapeHtml(text) { return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    function blurEditorIfTappedOutside(e) { const noteInput = document.getElementById('nodeNotesInput'); const colorBtns = document.getElementById('noteColorBtns'); const stickyBar = document.getElementById('stickyQuickBar'); if (noteInput && document.activeElement === noteInput) { if (!noteInput.contains(e.target) && (!colorBtns || !colorBtns.contains(e.target)) && (!stickyBar || !stickyBar.contains(e.target))) { noteInput.blur(); window.getSelection().removeAllRanges(); } } }
+    document.addEventListener('touchstart', blurEditorIfTappedOutside, true); document.addEventListener('mousedown', blurEditorIfTappedOutside, true);
 
     function getGameStats(gameTitle) {
       let statNode = treeData.find(n => n.type === 'gameStat' && n.gameTitle === gameTitle);
-      if (!statNode && gameTitle) {
-        statNode = {
-          id: 'STAT_' + Date.now() + '_' + Math.floor(Math.random()*1000),
-          type: 'gameStat',
-          gameTitle: gameTitle,
-          counters: [],
-          laps: [],
-          swRunning: false,
-          swElapsed: 0,
-          swStartTime: 0
-        };
-        treeData.push(statNode);
-        saveNodeToDB(statNode);
-      }
+      if (!statNode && gameTitle) { statNode = { id: 'STAT_' + Date.now() + '_' + Math.floor(Math.random()*1000), type: 'gameStat', gameTitle: gameTitle, counters: [], laps: [], swRunning: false, swElapsed: 0, swStartTime: 0 }; treeData.push(statNode); saveNodeToDB(statNode); }
       return statNode;
     }
-
-    // 시간 문자열(HH:MM:SS.ms)을 밀리초(ms)로 변환하는 함수
-    function parseTime(timeStr) {
-       let parts = timeStr.split(':');
-       if(parts.length !== 3) return 0;
-       let h = parseInt(parts[0]) || 0;
-       let m = parseInt(parts[1]) || 0;
-       let secParts = parts[2].split('.');
-       let s = parseInt(secParts[0]) || 0;
-       let ms = parseInt(secParts[1]) || 0;
-       return (h * 3600000) + (m * 60000) + (s * 1000) + (ms * 10);
-    }
-
+    function parseTime(timeStr) { let parts = timeStr.split(':'); if(parts.length !== 3) return 0; let h = parseInt(parts[0]) || 0; let m = parseInt(parts[1]) || 0; let secParts = parts[2].split('.'); let s = parseInt(secParts[0]) || 0; let ms = parseInt(secParts[1]) || 0; return (h * 3600000) + (m * 60000) + (s * 1000) + (ms * 10); }
     function addCounterPrompt() {
       if(!currentGameTitle) return;
       openTextInputModal("새 항목 추가", "예: 데스 카운트", "추가할 항목의 이름을 입력하세요:", function(name) {
         if (name && name.trim()) {
           openTextInputModal("증감 수치", "예: 1", "한 번 누를 때 증감할 수치를 입력하세요 (기본값: 1):", function(stepVal) {
-             let step = parseInt(stepVal);
-             if(isNaN(step) || step <= 0) step = 1;
-             
+             let step = parseInt(stepVal); if(isNaN(step) || step <= 0) step = 1;
              openTextInputModal("필요 수치 (선택)", "예: 100", "목표로 하는 필요 수치를 입력하세요 (공란 가능):", function(targetVal) {
-                 let stat = getGameStats(currentGameTitle);
-                 stat.counters.push({
-                     id: 'cnt_' + Date.now(),
-                     name: name.trim(),
-                     step: step,
-                     value: 0,
-                     targetValue: targetVal ? targetVal.trim() : ""
-                 });
-                 saveNodeToDB(stat);
-                 renderCounters();
+                 let stat = getGameStats(currentGameTitle); stat.counters.push({ id: 'cnt_' + Date.now(), name: name.trim(), step: step, value: 0, targetValue: targetVal ? targetVal.trim() : "" }); saveNodeToDB(stat); renderCounters();
              });
           });
         }
       });
     }
-
     let currentEditCounterId = null;
-
-    function openCounterEditModal(id) {
-      currentEditCounterId = id;
-      let stat = getGameStats(currentGameTitle);
-      let item = stat.counters.find(c => c.id === id);
-      if(!item) return;
-
-      document.getElementById('counterEditName').value = item.name;
-      document.getElementById('counterEditStep').value = item.step;
-      document.getElementById('counterEditTarget').value = item.targetValue || "";
-      
-      document.getElementById('counterEditModal').style.display = 'flex';
-      setTimeout(() => document.getElementById('counterEditName').focus(), 100);
-    }
-
-    function closeCounterEditModal() {
-      document.getElementById('counterEditModal').style.display = 'none';
-      currentEditCounterId = null;
-    }
-
-    function submitCounterEdit() {
-      if (!currentEditCounterId) return;
-      let stat = getGameStats(currentGameTitle);
-      let item = stat.counters.find(c => c.id === currentEditCounterId);
-      
-      if (item) {
-        let newName = document.getElementById('counterEditName').value.trim();
-        let newStep = parseInt(document.getElementById('counterEditStep').value);
-        let newTarget = document.getElementById('counterEditTarget').value.trim();
-
-        if (newName) item.name = newName;
-        if (!isNaN(newStep) && newStep > 0) item.step = newStep;
-        item.targetValue = newTarget;
-
-        saveNodeToDB(stat);
-        renderCounters();
-      }
-      closeCounterEditModal();
-    }
-
-    function updateCounterValue(id, deltaSign) {
-      let targetGame = currentGameTitle;
-      const viewSelectVal = document.getElementById('gameSelectView').value;
-      if (document.getElementById('btnViewMode').classList.contains('active') && viewSelectVal) {
-         targetGame = viewSelectVal;
-      }
-
-      let stat = getGameStats(targetGame);
-      let item = stat.counters.find(c => c.id === id);
-      if(item) {
-        item.value += (item.step * deltaSign);
-        saveNodeToDB(stat);
-        renderCounters();
-        renderViewQuickCounters(targetGame);
-      }
-    }
-
-    function resetCounter(id) {
-      let stat = getGameStats(currentGameTitle);
-      let item = stat.counters.find(c => c.id === id);
-      if(item) {
-        openConfirmActionModal("초기화", `'${item.name}' 항목의 수치를 0으로 초기화하시겠습니까?`, function() {
-          item.value = 0;
-          saveNodeToDB(stat);
-          renderCounters();
-        });
-      }
-    }
-
-    function deleteCounter(id) {
-      let stat = getGameStats(currentGameTitle);
-      let item = stat.counters.find(c => c.id === id);
-      if(item) {
-        openConfirmActionModal("삭제", `'${item.name}' 항목을 완전히 삭제하시겠습니까?`, function() {
-          stat.counters = stat.counters.filter(c => c.id !== id);
-          saveNodeToDB(stat);
-          renderCounters();
-        });
-      }
-    }
-
+    function openCounterEditModal(id) { currentEditCounterId = id; let stat = getGameStats(currentGameTitle); let item = stat.counters.find(c => c.id === id); if(!item) return; document.getElementById('counterEditName').value = item.name; document.getElementById('counterEditStep').value = item.step; document.getElementById('counterEditTarget').value = item.targetValue || ""; document.getElementById('counterEditModal').style.display = 'flex'; setTimeout(() => document.getElementById('counterEditName').focus(), 100); }
+    function closeCounterEditModal() { document.getElementById('counterEditModal').style.display = 'none'; currentEditCounterId = null; }
+    function submitCounterEdit() { if (!currentEditCounterId) return; let stat = getGameStats(currentGameTitle); let item = stat.counters.find(c => c.id === currentEditCounterId); if (item) { let newName = document.getElementById('counterEditName').value.trim(); let newStep = parseInt(document.getElementById('counterEditStep').value); let newTarget = document.getElementById('counterEditTarget').value.trim(); if (newName) item.name = newName; if (!isNaN(newStep) && newStep > 0) item.step = newStep; item.targetValue = newTarget; saveNodeToDB(stat); renderCounters(); } closeCounterEditModal(); }
+    function updateCounterValue(id, deltaSign) { let targetGame = currentGameTitle; const viewSelectVal = document.getElementById('gameSelectView').value; if (document.getElementById('btnViewMode').classList.contains('active') && viewSelectVal) targetGame = viewSelectVal; let stat = getGameStats(targetGame); let item = stat.counters.find(c => c.id === id); if(item) { item.value += (item.step * deltaSign); saveNodeToDB(stat); renderCounters(); renderViewQuickCounters(targetGame); } }
+    function resetCounter(id) { let stat = getGameStats(currentGameTitle); let item = stat.counters.find(c => c.id === id); if(item) { openConfirmActionModal("초기화", `'${item.name}' 항목의 수치를 0으로 초기화하시겠습니까?`, function() { item.value = 0; saveNodeToDB(stat); renderCounters(); }); } }
+    function deleteCounter(id) { let stat = getGameStats(currentGameTitle); let item = stat.counters.find(c => c.id === id); if(item) { openConfirmActionModal("삭제", `'${item.name}' 항목을 완전히 삭제하시겠습니까?`, function() { stat.counters = stat.counters.filter(c => c.id !== id); saveNodeToDB(stat); renderCounters(); }); } }
     function renderCounters() {
-      const container = document.getElementById('counterListContainer');
-      if(!currentGameTitle) {
-        container.innerHTML = '<div style="color:#777; text-align:center; padding:20px;">게임을 선택해주세요.</div>';
-        return;
-      }
-
-      let stat = getGameStats(currentGameTitle);
-      if(!stat || stat.counters.length === 0) {
-        container.innerHTML = '<div style="color:#777; text-align:center; padding:20px;">우측 상단 [+ 새 항목]을 눌러 추가하세요.</div>';
-        return;
-      }
-
-      let html = '';
-      stat.counters.forEach(c => {
-        let targetHtml = c.targetValue ? `<span style="color:#FFE066; margin-left:6px; font-size:14px; font-weight:normal;">(${escapeHtml(c.targetValue)})</span>` : '';
-        
-        html += `
-          <div class="counter-card">
-            <div class="counter-info">
-              <button class="btn-small" style="background:#4a4a4a; padding:4px 6px; margin-top:2px;" onclick="openCounterEditModal('${c.id}')" title="항목 수정">✏️</button>
-              <div class="counter-text-group">
-                <div class="counter-name-wrap">
-                  <span class="counter-name">${escapeHtml(c.name)}</span>
-                  ${targetHtml}
-                </div>
-                <span class="counter-step">증감 폭: ${c.step}</span>
-              </div>
-            </div>
-            <div class="counter-actions">
-              <button class="btn-small" style="background:#555; padding: 10px 14px; font-size:16px;" onclick="updateCounterValue('${c.id}', -1)">-</button>
-              <div class="counter-value">${c.value}</div>
-              <button class="btn-small" style="background:var(--accent-color); color:#1a1a1a; padding: 10px 14px; font-size:16px; font-weight:bold;" onclick="updateCounterValue('${c.id}', 1)">+</button>
-              <div style="display:flex; flex-direction:column; gap:4px; margin-left:6px;">
-                <button class="btn-small" style="background:#1565c0; font-size:10px; padding:4px;" onclick="resetCounter('${c.id}')">Reset</button>
-                <button class="btn-small" style="background:#a82828; font-size:10px; padding:4px;" onclick="deleteCounter('${c.id}')">Del</button>
-              </div>
-            </div>
-          </div>
-        `;
-      });
-      container.innerHTML = html;
+      const container = document.getElementById('counterListContainer'); if(!currentGameTitle) { container.innerHTML = '<div style="color:#777; text-align:center; padding:20px;">게임을 선택해주세요.</div>'; return; }
+      let stat = getGameStats(currentGameTitle); if(!stat || stat.counters.length === 0) { container.innerHTML = '<div style="color:#777; text-align:center; padding:20px;">우측 상단 [+ 새 항목]을 눌러 추가하세요.</div>'; return; }
+      let html = ''; stat.counters.forEach(c => { let targetHtml = c.targetValue ? `<span style="color:#FFE066; margin-left:6px; font-size:14px; font-weight:normal;">(${escapeHtml(c.targetValue)})</span>` : ''; html += `<div class="counter-card"><div class="counter-info"><button class="btn-small" style="background:#4a4a4a; padding:4px 6px; margin-top:2px;" onclick="openCounterEditModal('${c.id}')" title="항목 수정">✏️</button><div class="counter-text-group"><div class="counter-name-wrap"><span class="counter-name">${escapeHtml(c.name)}</span>${targetHtml}</div><span class="counter-step">증감 폭: ${c.step}</span></div></div><div class="counter-actions"><button class="btn-small" style="background:#555; padding: 10px 14px; font-size:16px;" onclick="updateCounterValue('${c.id}', -1)">-</button><div class="counter-value">${c.value}</div><button class="btn-small" style="background:var(--accent-color); color:#1a1a1a; padding: 10px 14px; font-size:16px; font-weight:bold;" onclick="updateCounterValue('${c.id}', 1)">+</button><div style="display:flex; flex-direction:column; gap:4px; margin-left:6px;"><button class="btn-small" style="background:#1565c0; font-size:10px; padding:4px;" onclick="resetCounter('${c.id}')">Reset</button><button class="btn-small" style="background:#a82828; font-size:10px; padding:4px;" onclick="deleteCounter('${c.id}')">Del</button></div></div></div>`; }); container.innerHTML = html;
     }
-
-    // TimeChecker 수정 모달 및 동기화 로직
     let currentEditLapIndex = -1;
+    function openLapEditModal(idx) { currentEditLapIndex = idx; let stat = getGameStats(currentGameTitle); let lap = stat.laps[idx]; document.getElementById('lapEditTime').value = lap.timeStr; document.getElementById('lapEditNote').value = lap.note; document.getElementById('lapEditModal').style.display = 'flex'; setTimeout(() => document.getElementById('lapEditNote').focus(), 100); }
+    function closeLapEditModal() { document.getElementById('lapEditModal').style.display = 'none'; currentEditLapIndex = -1; }
+    function submitLapEdit() { if (currentEditLapIndex > -1) { let stat = getGameStats(currentGameTitle); stat.laps[currentEditLapIndex].timeStr = document.getElementById('lapEditTime').value; stat.laps[currentEditLapIndex].note = document.getElementById('lapEditNote').value; stat.laps.sort((a, b) => parseTime(a.timeStr) - parseTime(b.timeStr)); saveNodeToDB(stat); renderLaps(); } closeLapEditModal(); }
+    function deleteLap(idx, event) { if(event) event.stopPropagation(); openConfirmActionModal("삭제", "이 기록을 삭제하시겠습니까?", function() { let stat = getGameStats(currentGameTitle); stat.laps.splice(idx, 1); saveNodeToDB(stat); renderLaps(); }); }
+    function syncStopwatchToLap(idx) { if(!currentGameTitle) return; openConfirmActionModal("시간 동기화", "해당 시간부터 다시 기록하겠습니까?", function() { let stat = getGameStats(currentGameTitle); let lap = stat.laps[idx]; if(!lap) return; let parsedMs = parseTime(lap.timeStr); stat.swElapsed = parsedMs; stat.swRunning = false; stat.swStartTime = 0; saveNodeToDB(stat); updateStopwatchUI(); document.getElementById('swDisplay').textContent = formatTime(parsedMs); }); }
+    function formatTime(ms) { let totalSec = Math.floor(ms / 1000); let msec = Math.floor((ms % 1000) / 10); let h = Math.floor(totalSec / 3600); let m = Math.floor((totalSec % 3600) / 60); let s = totalSec % 60; return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${msec.toString().padStart(2,'0')}`; }
+    function toggleStopwatch() { if(!currentGameTitle) { openConfirmActionModal("알림", "스톱워치를 시작할 게임을 선택해주세요.", null); return; } let stat = getGameStats(currentGameTitle); if (stat.swRunning) { stat.swElapsed += (Date.now() - stat.swStartTime); stat.swRunning = false; stat.swStartTime = 0; } else { stat.swRunning = true; stat.swStartTime = Date.now(); } saveNodeToDB(stat); updateStopwatchUI(); }
+    function lapStopwatch() { if(!currentGameTitle) return; let stat = getGameStats(currentGameTitle); let totalMs = stat.swElapsed; if (stat.swRunning && stat.swStartTime > 0) totalMs += (Date.now() - stat.swStartTime); if (totalMs === 0) return; const timeStr = formatTime(totalMs); openTextInputModal("랩타임 기록", "이벤트 내용 입력...", `현재 시간 [${timeStr}]에 대한 메모를 입력하세요 (선택):`, function(note) { stat.laps.push({ timeStr: timeStr, note: note || '이벤트 기록됨' }); stat.laps.sort((a, b) => parseTime(a.timeStr) - parseTime(b.timeStr)); saveNodeToDB(stat); renderLaps(); }); }
+    function resetStopwatchTimerPrompt() { if(!currentGameTitle) return; openConfirmActionModal("스톱워치 리셋", "현재 스톱워치 시간을 00:00:00으로 초기화하시겠습니까?\n(아래 랩타임 기록 리스트는 유지됩니다)", function() { let stat = getGameStats(currentGameTitle); stat.swRunning = false; stat.swElapsed = 0; stat.swStartTime = 0; saveNodeToDB(stat); updateStopwatchUI(); }); }
+    function resetLapsPrompt() { if(!currentGameTitle) return; openConfirmActionModal("랩타임 초기화", "이 게임의 랩타임(이벤트) 기록을 모두 지우시겠습니까?", function() { let stat = getGameStats(currentGameTitle); stat.laps = []; saveNodeToDB(stat); renderLaps(); }); }
+    function updateStopwatchUI() { if(!currentGameTitle) { document.getElementById('swDisplay').textContent = "00:00:00.00"; document.getElementById('swBorder').classList.remove('active'); return; } let stat = getGameStats(currentGameTitle); const btn = document.getElementById('swToggleBtn'); if(stat && stat.swRunning) { btn.innerText = "⏸ 정지"; btn.style.background = "#FF6B6B"; btn.style.color = "#fff"; document.getElementById('swBorder').classList.add('active'); } else { btn.innerText = "▶ 시작"; btn.style.background = "var(--accent-color)"; btn.style.color = "#1a1a1a"; document.getElementById('swBorder').classList.remove('active'); } }
+    function stopwatchLoop() { if(!currentGameTitle) return; let stat = getGameStats(currentGameTitle); if(!stat) return; let totalMs = stat.swElapsed; if (stat.swRunning && stat.swStartTime > 0) totalMs += (Date.now() - stat.swStartTime); document.getElementById('swDisplay').textContent = formatTime(totalMs); }
+    function renderLaps() { const container = document.getElementById('lapListContainer'); if(!currentGameTitle) { container.innerHTML = '<div style="color:#777; text-align:center; padding:20px;">게임을 선택해주세요.</div>'; return; } let stat = getGameStats(currentGameTitle); if(!stat || !stat.laps || stat.laps.length === 0) { container.innerHTML = '<div style="color:#777; text-align:center; padding:20px;">하단 스톱워치의 [Lap] 버튼을 눌러 기록을 추가하세요.</div>'; return; } let html = ''; for (let i = stat.laps.length - 1; i >= 0; i--) { let lap = stat.laps[i]; html += `<div class="lap-item" onclick="openLapEditModal(${i})"><div class="lap-time">${lap.timeStr}</div><div class="lap-note">${escapeHtml(lap.note)}</div><button class="btn-small" style="background:#1565c0; padding:4px 8px; margin-left:6px;" onclick="event.stopPropagation(); syncStopwatchToLap(${i})" title="이 시간으로 맞추기">⏰</button><button class="btn-small" style="background:#4a4a4a; padding:4px 8px; margin-left:6px;" onclick="event.stopPropagation(); openLapEditModal(${i})" title="기록 수정">✏️</button><button class="btn-small" style="background:#a82828; padding:4px 8px; margin-left:6px;" onclick="deleteLap(${i}, event)" title="삭제">X</button></div>`; } container.innerHTML = html; }
 
-    function openLapEditModal(idx) {
-      currentEditLapIndex = idx;
-      let stat = getGameStats(currentGameTitle);
-      let lap = stat.laps[idx];
-      
-      document.getElementById('lapEditTime').value = lap.timeStr;
-      document.getElementById('lapEditNote').value = lap.note;
-      
-      document.getElementById('lapEditModal').style.display = 'flex';
-      setTimeout(() => document.getElementById('lapEditNote').focus(), 100);
-    }
-
-    function closeLapEditModal() {
-      document.getElementById('lapEditModal').style.display = 'none';
-      currentEditLapIndex = -1;
-    }
-
-    function submitLapEdit() {
-      if (currentEditLapIndex > -1) {
-         let stat = getGameStats(currentGameTitle);
-         stat.laps[currentEditLapIndex].timeStr = document.getElementById('lapEditTime').value;
-         stat.laps[currentEditLapIndex].note = document.getElementById('lapEditNote').value;
-         
-         stat.laps.sort((a, b) => parseTime(a.timeStr) - parseTime(b.timeStr));
-         
-         saveNodeToDB(stat);
-         renderLaps();
-      }
-      closeLapEditModal();
-    }
-
-    function deleteLap(idx, event) {
-      if(event) event.stopPropagation();
-      openConfirmActionModal("삭제", "이 기록을 삭제하시겠습니까?", function() {
-         let stat = getGameStats(currentGameTitle);
-         stat.laps.splice(idx, 1);
-         saveNodeToDB(stat);
-         renderLaps();
+    // ==========================================
+    // PWA Service Worker 및 설치 로직 추가
+    // ==========================================
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(reg => console.log('Service Worker 등록 성공:', reg.scope))
+          .catch(err => console.log('Service Worker 등록 실패:', err));
       });
     }
 
-    function syncStopwatchToLap(idx) {
-       if(!currentGameTitle) return;
-       openConfirmActionModal("시간 동기화", "해당 시간부터 다시 기록하겠습니까?", function() {
-           let stat = getGameStats(currentGameTitle);
-           let lap = stat.laps[idx];
-           if(!lap) return;
-           
-           let parsedMs = parseTime(lap.timeStr);
-           stat.swElapsed = parsedMs;
-           stat.swRunning = false;
-           stat.swStartTime = 0;
-           saveNodeToDB(stat);
-           updateStopwatchUI();
-           document.getElementById('swDisplay').textContent = formatTime(parsedMs);
-       });
-    }
-
-    function formatTime(ms) {
-       let totalSec = Math.floor(ms / 1000);
-       let msec = Math.floor((ms % 1000) / 10);
-       let h = Math.floor(totalSec / 3600);
-       let m = Math.floor((totalSec % 3600) / 60);
-       let s = totalSec % 60;
-       return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}.${msec.toString().padStart(2,'0')}`;
-    }
-
-    function toggleStopwatch() {
-       if(!currentGameTitle) {
-         openConfirmActionModal("알림", "스톱워치를 시작할 게임을 선택해주세요.", null);
-         return;
-       }
-       let stat = getGameStats(currentGameTitle);
-       if (stat.swRunning) {
-           stat.swElapsed += (Date.now() - stat.swStartTime);
-           stat.swRunning = false;
-           stat.swStartTime = 0;
-       } else {
-           stat.swRunning = true;
-           stat.swStartTime = Date.now();
-       }
-       saveNodeToDB(stat);
-       updateStopwatchUI();
-    }
-
-    function lapStopwatch() {
-       if(!currentGameTitle) return;
-       let stat = getGameStats(currentGameTitle);
-       let totalMs = stat.swElapsed;
-       if (stat.swRunning && stat.swStartTime > 0) {
-           totalMs += (Date.now() - stat.swStartTime);
-       }
-       if (totalMs === 0) return; 
-       
-       const timeStr = formatTime(totalMs);
-
-       openTextInputModal("랩타임 기록", "이벤트 내용 입력...", `현재 시간 [${timeStr}]에 대한 메모를 입력하세요 (선택):`, function(note) {
-           stat.laps.push({ timeStr: timeStr, note: note || '이벤트 기록됨' });
-           
-           stat.laps.sort((a, b) => parseTime(a.timeStr) - parseTime(b.timeStr));
-           
-           saveNodeToDB(stat);
-           renderLaps();
-       });
-    }
-
-    function resetStopwatchTimerPrompt() {
-       if(!currentGameTitle) return;
-       openConfirmActionModal("스톱워치 리셋", "현재 스톱워치 시간을 00:00:00으로 초기화하시겠습니까?\n(아래 랩타임 기록 리스트는 유지됩니다)", function() {
-           let stat = getGameStats(currentGameTitle);
-           stat.swRunning = false;
-           stat.swElapsed = 0;
-           stat.swStartTime = 0;
-           saveNodeToDB(stat);
-           updateStopwatchUI();
-       });
-    }
-
-    function resetLapsPrompt() {
-       if(!currentGameTitle) return;
-       openConfirmActionModal("랩타임 초기화", "이 게임의 랩타임(이벤트) 기록을 모두 지우시겠습니까?", function() {
-           let stat = getGameStats(currentGameTitle);
-           stat.laps = [];
-           saveNodeToDB(stat);
-           renderLaps();
-       });
-    }
-
-    function updateStopwatchUI() {
-       if(!currentGameTitle) {
-         document.getElementById('swDisplay').textContent = "00:00:00.00";
-         document.getElementById('swBorder').classList.remove('active');
-         return;
-       }
-       let stat = getGameStats(currentGameTitle);
-       const btn = document.getElementById('swToggleBtn');
-       if(stat && stat.swRunning) {
-           btn.innerText = "⏸ 정지";
-           btn.style.background = "#FF6B6B";
-           btn.style.color = "#fff";
-           document.getElementById('swBorder').classList.add('active');
-       } else {
-           btn.innerText = "▶ 시작";
-           btn.style.background = "var(--accent-color)";
-           btn.style.color = "#1a1a1a";
-           document.getElementById('swBorder').classList.remove('active');
-       }
-    }
-
-    function stopwatchLoop() {
-       if(!currentGameTitle) return;
-       let stat = getGameStats(currentGameTitle);
-       if(!stat) return;
-       
-       let totalMs = stat.swElapsed;
-       if (stat.swRunning && stat.swStartTime > 0) {
-           totalMs += (Date.now() - stat.swStartTime);
-       }
-       document.getElementById('swDisplay').textContent = formatTime(totalMs);
-    }
-
-    function renderLaps() {
-       const container = document.getElementById('lapListContainer');
-       if(!currentGameTitle) {
-         container.innerHTML = '<div style="color:#777; text-align:center; padding:20px;">게임을 선택해주세요.</div>';
-         return;
-       }
-       let stat = getGameStats(currentGameTitle);
-       if(!stat || !stat.laps || stat.laps.length === 0) {
-          container.innerHTML = '<div style="color:#777; text-align:center; padding:20px;">하단 스톱워치의 [Lap] 버튼을 눌러 기록을 추가하세요.</div>';
-          return;
-       }
-       
-       let html = '';
-       for (let i = stat.laps.length - 1; i >= 0; i--) {
-          let lap = stat.laps[i];
-          html += `<div class="lap-item" onclick="openLapEditModal(${i})">
-                     <div class="lap-time">${lap.timeStr}</div>
-                     <div class="lap-note">${escapeHtml(lap.note)}</div>
-                     <button class="btn-small" style="background:#1565c0; padding:4px 8px; margin-left:6px;" onclick="event.stopPropagation(); syncStopwatchToLap(${i})" title="이 시간으로 맞추기">⏰</button>
-                     <button class="btn-small" style="background:#4a4a4a; padding:4px 8px; margin-left:6px;" onclick="event.stopPropagation(); openLapEditModal(${i})" title="기록 수정">✏️</button>
-                     <button class="btn-small" style="background:#a82828; padding:4px 8px; margin-left:6px;" onclick="deleteLap(${i}, event)" title="삭제">X</button>
-                   </div>`;
-       }
-       container.innerHTML = html;
-    }
-
-    // ==========================================
-    // PWA 앱 설치 (Install) 로직 추가 
-    // ==========================================
+    // PWA 앱 설치 (Install) 로직 (Android 등 브라우저 지원 환경)
     let deferredPrompt;
     const btnInstall = document.getElementById('btnInstall');
 
     window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      deferredPrompt = e;
-      btnInstall.style.display = 'inline-block';
+      e.preventDefault(); deferredPrompt = e; btnInstall.style.display = 'inline-block';
     });
 
     btnInstall.addEventListener('click', async () => {
@@ -3216,8 +1142,7 @@
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         console.log(`User response to the install prompt: ${outcome}`);
-        deferredPrompt = null;
-        btnInstall.style.display = 'none';
+        deferredPrompt = null; btnInstall.style.display = 'none';
       }
     });
 
@@ -3226,6 +1151,21 @@
       console.log('PWA가 기기에 성공적으로 설치되었습니다.');
     });
 
+    // iOS 전용 설치 안내 스크립트 (iOS Safari는 beforeinstallprompt 미지원)
+    const isIos = () => {
+      const userAgent = window.navigator.userAgent.toLowerCase();
+      return /iphone|ipad|ipod/.test(userAgent);
+    };
+    const isInStandaloneMode = () => ('standalone' in window.navigator) && (window.navigator.standalone);
+
+    if (isIos() && !isInStandaloneMode()) {
+      btnInstall.style.display = 'inline-block';
+      btnInstall.innerText = '[iOS 설치방법]';
+      btnInstall.addEventListener('click', (e) => {
+        e.preventDefault();
+        alert("🍎 iOS 설치 방법:\n\n1. 화면 하단의 [공유] 버튼(네모 안에서 화살표가 위로 향한 아이콘)을 누릅니다.\n2. 메뉴를 위로 올려 [홈 화면에 추가]를 선택합니다.\n3. 우측 상단의 [추가]를 누르면 바탕화면에 독립 앱으로 설치됩니다.");
+      });
+    }
   </script>
 </body>
 </html>
