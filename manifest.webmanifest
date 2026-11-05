@@ -2,7 +2,7 @@
   "name": "GameDiary",
   "short_name": "GameDiary",
   "description": "오프라인 지원 게임 진행 기록 다이어리",
-  "id": "/gamediary/",
+  "id": "https://yomalapin.github.io/gamediary/",
   "display": "standalone",
   "display_override": [
     "standalone",
@@ -10,7 +10,7 @@
   ],
   "background_color": "#242424",
   "theme_color": "#242424",
-  "start_url": "/gamediary/index.html?source=pwa",
+  "start_url": "/gamediary/",
   "scope": "/gamediary/",
   "icons": [
     {
