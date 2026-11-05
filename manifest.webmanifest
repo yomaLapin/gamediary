@@ -10,8 +10,8 @@
   ],
   "background_color": "#242424",
   "theme_color": "#242424",
-  "start_url": "/gamediary/",
-  "scope": "/gamediary/",
+  "start_url": "https://yomalapin.github.io/gamediary/",
+  "scope": "https://yomalapin.github.io/gamediary/",
   "icons": [
     {
       "src": "icons/icon-192.png",
