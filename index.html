@@ -447,7 +447,7 @@
   <div class="fixed-bottom-wrapper">
     <div class="bottom-info">
       <span>-제작: yomaLapin</span>
-      <span>-Ver: 202610-020 (PWA)</span>
+      <span>-Ver: 202611-001 (PWA)</span>
     </div>
     <div class="bottom-actions">
       <button class="btn-bottom" id="btnInstall" style="display:none; background-color: var(--accent-color); color: #1a1a1a;">[설치]</button>
@@ -651,13 +651,46 @@
       });
     }
 
+    // 구버전 데이터에 남아 있는 path 필드를 포함해, 모든 깊이에서 path 키를 완전히 제거합니다.
+    // 새 데이터 저장·JSON 내보내기에서도 같은 정리 함수를 사용합니다.
+    function removeLegacyPathFields(value) {
+      if (Array.isArray(value)) {
+        value.forEach(item => removeLegacyPathFields(item));
+        return;
+      }
+      if (!value || typeof value !== 'object') return;
+      Object.keys(value).forEach(key => {
+        if (key === 'path') delete value[key];
+        else removeLegacyPathFields(value[key]);
+      });
+    }
+
     function sanitizeData() {
+      let changed = false;
       treeData.forEach(node => {
+        if (!node || typeof node !== 'object') return;
+        const before = JSON.stringify(node);
+        removeLegacyPathFields(node);
         if (!node.gameTitle) node.gameTitle = "미지정 게임";
         if (node.completed === undefined) node.completed = false;
-        if (node.order === undefined) { const ts = parseInt(node.id.replace('node_', '').replace('STAT_', '')); node.order = isNaN(ts) ? Date.now() : ts; }
+        if (node.order === undefined) {
+          const idText = String(node.id || '');
+          const ts = parseInt(idText.replace('node_', '').replace('STAT_', ''));
+          node.order = isNaN(ts) ? Date.now() : ts;
+        }
+        if (before !== JSON.stringify(node)) changed = true;
       });
+      treeData = treeData.filter(node => node && typeof node === 'object');
       treeData.sort((a, b) => a.order - b.order);
+      return changed;
+    }
+
+    // 기존 IndexedDB 데이터도 정리된 형태로 다시 기록해 다음 실행 때 path가 되살아나지 않게 합니다.
+    function persistSanitizedData() {
+      if (!db || !treeData.length) return;
+      const tx = db.transaction(["treeNodes"], "readwrite");
+      const store = tx.objectStore("treeNodes");
+      treeData.forEach(node => store.put(node));
     }
     function getGameList() { const titles = treeData.map(node => node.gameTitle || "미지정 게임"); return [...new Set(titles)].filter(Boolean); }
     function updateGameDropdowns() {
@@ -774,7 +807,10 @@
       const store = transaction.objectStore("treeNodes");
       const getAll = store.getAll();
       getAll.onsuccess = function() {
-        treeData = getAll.result || []; sanitizeData(); collapsedTreeNodes.clear();
+        treeData = getAll.result || [];
+        const hadLegacyData = sanitizeData();
+        if (hadLegacyData) persistSanitizedData();
+        collapsedTreeNodes.clear();
         treeData.forEach(node => { const hasChildren = treeData.some(child => child.parentId === node.id && child.type !== 'gameStat'); if (hasChildren) collapsedTreeNodes.add(node.id); });
         const games = getGameList();
         if (games.length > 0) {
@@ -1043,11 +1079,21 @@
         saveNodeToDB(node); renderTree();
       }
     }
-    function saveNodeToDB(node) { const tx = db.transaction(["treeNodes"], "readwrite"); const store = tx.objectStore("treeNodes"); store.put(node); }
+    function saveNodeToDB(node) {
+      if (!node || typeof node !== 'object') return;
+      removeLegacyPathFields(node);
+      const tx = db.transaction(["treeNodes"], "readwrite");
+      const store = tx.objectStore("treeNodes");
+      store.put(node);
+    }
     
     // 파일 내보내기 시 GameDiary 명칭 적용
     function exportData() {
-      saveActiveNodeData(); const jsonData = JSON.stringify(treeData, null, 2);
+      saveActiveNodeData();
+      // 혹시 메모리상에 남아 있는 구버전 필드도 내보내기 직전에 제거합니다.
+      treeData.forEach(node => removeLegacyPathFields(node));
+      persistSanitizedData();
+      const jsonData = JSON.stringify(treeData, null, 2);
       const now = new Date(); const timestamp = now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '_' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0') + String(now.getSeconds()).padStart(2, '0');
       const defaultFilename = currentGameTitle ? `GameDiary_${currentGameTitle}_${timestamp}.json` : `GameDiary_${timestamp}.json`;
       const blob = new Blob([jsonData], { type: 'application/json' }); const url = URL.createObjectURL(blob);
@@ -1060,8 +1106,12 @@
         try {
           const importedData = JSON.parse(event.target.result);
           if (Array.isArray(importedData)) {
-            const tx = db.transaction(["treeNodes"], "readwrite"); const store = tx.objectStore("treeNodes"); store.clear();
-            importedData.forEach(node => store.put(node)); treeData = importedData; sanitizeData();
+            treeData = importedData;
+            sanitizeData();
+            const tx = db.transaction(["treeNodes"], "readwrite");
+            const store = tx.objectStore("treeNodes");
+            store.clear();
+            treeData.forEach(node => store.put(node));
             const games = getGameList(); if (games.length > 0) currentGameTitle = games[0];
             updateGameDropdowns(); renderTree(); renderViewMode(); closeStartModal();
           }
@@ -1119,13 +1169,41 @@
     function renderLaps() { const container = document.getElementById('lapListContainer'); if(!currentGameTitle) { container.innerHTML = '<div style="color:#777; text-align:center; padding:20px;">게임을 선택해주세요.</div>'; return; } let stat = getGameStats(currentGameTitle); if(!stat || !stat.laps || stat.laps.length === 0) { container.innerHTML = '<div style="color:#777; text-align:center; padding:20px;">하단 스톱워치의 [Lap] 버튼을 눌러 기록을 추가하세요.</div>'; return; } let html = ''; for (let i = stat.laps.length - 1; i >= 0; i--) { let lap = stat.laps[i]; html += `<div class="lap-item" onclick="openLapEditModal(${i})"><div class="lap-time">${lap.timeStr}</div><div class="lap-note">${escapeHtml(lap.note)}</div><button class="btn-small" style="background:#1565c0; padding:4px 8px; margin-left:6px;" onclick="event.stopPropagation(); syncStopwatchToLap(${i})" title="이 시간으로 맞추기">⏰</button><button class="btn-small" style="background:#4a4a4a; padding:4px 8px; margin-left:6px;" onclick="event.stopPropagation(); openLapEditModal(${i})" title="기록 수정">✏️</button><button class="btn-small" style="background:#a82828; padding:4px 8px; margin-left:6px;" onclick="deleteLap(${i}, event)" title="삭제">X</button></div>`; } container.innerHTML = html; }
 
     // ==========================================
-    // PWA Service Worker 및 설치 로직 추가
+    // PWA 자동 업데이트 및 설치 로직
+    // 새 SW가 설치되면 대기 없이 활성화하고, 기존 앱은 새 컨트롤러 적용 시 자동 새로고침합니다.
+    // 메모/제목/맵은 입력·조작 시 IndexedDB에 저장되는 기존 구조를 유지합니다.
     // ==========================================
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('sw.js')
-          .then(reg => console.log('Service Worker 등록 성공:', reg.scope))
-          .catch(err => console.log('Service Worker 등록 실패:', err));
+      let hasExistingController = !!navigator.serviceWorker.controller;
+      let updateReloading = false;
+
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // 최초 설치 시 발생하는 controllerchange는 새로고침하지 않습니다.
+        if (!hasExistingController || updateReloading) return;
+        updateReloading = true;
+        window.location.reload();
+      });
+
+      window.addEventListener('load', async () => {
+        try {
+          const registration = await navigator.serviceWorker.register('./sw.js', {
+            scope: './',
+            updateViaCache: 'none'
+          });
+          console.log('Service Worker 등록 성공:', registration.scope);
+
+          // 앱을 열 때마다 서버의 sw.js를 확인합니다. 주기 확인은 장시간 실행 중인 앱용입니다.
+          await registration.update();
+          window.setInterval(() => {
+            if (document.visibilityState === 'visible') registration.update().catch(() => {});
+          }, 60 * 60 * 1000);
+
+          document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') registration.update().catch(() => {});
+          });
+        } catch (err) {
+          console.log('Service Worker 등록/업데이트 확인 실패:', err);
+        }
       });
     }
 
