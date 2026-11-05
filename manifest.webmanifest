@@ -2,7 +2,7 @@
   "name": "GameDiary",
   "short_name": "GameDiary",
   "description": "오프라인 지원 게임 진행 기록 다이어리",
-  "id": "./gamediary",
+  "id": "/gamediary/",
   "display": "standalone",
   "display_override": [
     "standalone",
